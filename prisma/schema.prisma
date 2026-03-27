@@ -1,0 +1,137 @@
+// Prisma schema for SQLite now; switch provider to "mysql" later when you migrate.
+// Update DATABASE_URL accordingly when moving to MySQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  USER
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  role         UserRole   @default(USER)
+  passwordHash String
+  sessions     Session[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  bio       String?
+  website   String?
+  city      String?
+  country   String?
+  books     Book[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Designer {
+  id           String   @id @default(cuid())
+  name         String
+  email        String?  @unique
+  phone        String?
+  specialty    String?
+  portfolioUrl String?
+  country      String?
+  bio          String?
+  books        Book[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Club {
+  id          String        @id @default(cuid())
+  name        String
+  email       String?       @unique
+  phone       String?
+  city        String?
+  country     String?
+  description String?
+  foundedAt   DateTime?
+  ambassadors Ambassador[]
+  members     ClubMember[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Ambassador {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  city      String?
+  country   String?
+  bio       String?
+  clubId    String?
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clubId])
+}
+
+model ClubMember {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  city      String?
+  role      String?
+  joinedAt  DateTime?
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  @@index([clubId])
+}
+
+model Book {
+  id              String    @id @default(cuid())
+  title           String
+  isbn            String?   @unique
+  description     String?
+  publisher       String?   @default("Umoja Editions")
+  publishedAt     DateTime?
+  language        String?
+  pageCount       Int?
+  pricePaperCents Int
+  priceEbookCents Int
+  authorId        String
+  author          Author    @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  designerId      String?
+  designer        Designer? @relation(fields: [designerId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([authorId])
+  @@index([designerId])
+}
