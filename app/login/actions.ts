@@ -33,5 +33,5 @@ export async function login(
   }
 
   await createSession(user.id);
-  redirect("/users");
+  redirect("/dashboard");
 }

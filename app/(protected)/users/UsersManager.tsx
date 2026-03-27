@@ -4,7 +4,12 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { Pencil, Search, Trash2, Users } from "lucide-react";
 import { createUser, deleteUser, updateUser } from "./actions";
-import { USER_ROLES, type UserRoleOption } from "./constants";
+import {
+  USER_PROFILES,
+  USER_ROLES,
+  type UserProfileOption,
+  type UserRoleOption,
+} from "./constants";
 import type { UserListItem } from "./types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +40,7 @@ type UsersManagerProps = {
 };
 
 type RoleFilter = "ALL" | UserRoleOption;
+type ProfileFilter = "ALL" | UserProfileOption;
 
 export function UsersManager({
   initialUsers,
@@ -45,6 +51,7 @@ export function UsersManager({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  const [profileFilter, setProfileFilter] = useState<ProfileFilter>("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -60,17 +67,21 @@ export function UsersManager({
       result = result.filter((user) => user.role === roleFilter);
     }
 
+    if (profileFilter !== "ALL") {
+      result = result.filter((user) => user.profile === profileFilter);
+    }
+
     if (!normalized) {
       return result;
     }
 
     return result.filter((user) =>
-      [user.name, user.email, user.role]
+      [user.name, user.email, user.role, user.profile, user.clubScopeName]
         .join(" ")
         .toLowerCase()
         .includes(normalized)
     );
-  }, [users, searchTerm, roleFilter]);
+  }, [users, searchTerm, roleFilter, profileFilter]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +93,8 @@ export function UsersManager({
       name: String(formData.get("name") || ""),
       email: String(formData.get("email") || ""),
       role: String(formData.get("role") || "USER"),
+      profile: String(formData.get("profile") || "AUTEUR"),
+      clubScopeId: String(formData.get("clubScopeId") || ""),
       password: String(formData.get("password") || ""),
     };
 
@@ -155,6 +168,7 @@ export function UsersManager({
     // Clear search and role filters.
     setSearchTerm("");
     setRoleFilter("ALL");
+    setProfileFilter("ALL");
   }
 
   return (
@@ -226,6 +240,33 @@ export function UsersManager({
                     </option>
                   ))}
                 </select>
+              </div>
+
+
+              <div className="space-y-2">
+                <Label htmlFor="profile">Profil</Label>
+                <select
+                  id="profile"
+                  name="profile"
+                  defaultValue={editingUser?.profile ?? "AUTEUR"}
+                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                >
+                  {USER_PROFILES.map((profile) => (
+                    <option key={profile} value={profile}>
+                      {profile}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clubScopeId">Club de responsabilite</Label>
+                <Input
+                  id="clubScopeId"
+                  name="clubScopeId"
+                  defaultValue={editingUser?.clubScopeId ?? ""}
+                  placeholder="Id du club (chef / ambassadeur)"
+                />
               </div>
 
               <div className="space-y-2">
@@ -311,6 +352,26 @@ export function UsersManager({
                 </select>
               </div>
 
+              <div className="w-full md:w-56">
+                <Label htmlFor="profile-filter">Filtrer par profil</Label>
+                <select
+                  id="profile-filter"
+                  name="profile-filter"
+                  value={profileFilter}
+                  onChange={(event) =>
+                    setProfileFilter(event.target.value as ProfileFilter)
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                >
+                  <option value="ALL">Tous les profils</option>
+                  {USER_PROFILES.map((profile) => (
+                    <option key={profile} value={profile}>
+                      {profile}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="w-full md:w-auto">
                 <Button
                   type="button"
@@ -335,6 +396,8 @@ export function UsersManager({
                   <th className="py-2 pr-4">Nom</th>
                   <th className="py-2 pr-4">Email</th>
                   <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Profil</th>
+                  <th className="py-2 pr-4">Club scope</th>
                   <th className="py-2 pr-4">Cree le</th>
                   <th className="py-2">Actions</th>
                 </tr>
@@ -345,6 +408,8 @@ export function UsersManager({
                     <td className="py-2 pr-4 font-medium">{user.name}</td>
                     <td className="py-2 pr-4">{user.email}</td>
                     <td className="py-2 pr-4">{user.role}</td>
+                    <td className="py-2 pr-4">{user.profile}</td>
+                    <td className="py-2 pr-4">{user.clubScopeName ?? "-"}</td>
                     <td className="py-2 pr-4">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
@@ -377,7 +442,7 @@ export function UsersManager({
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={7}
                       className="py-6 text-center text-muted-foreground"
                     >
                       Aucun utilisateur ne correspond a la recherche.

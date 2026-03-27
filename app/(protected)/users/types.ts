@@ -1,11 +1,14 @@
 // Types used by the Users UI.
-import type { UserRole } from "@prisma/client";
+import type { UserProfile, UserRole } from "@prisma/client";
 
 export type UserListItem = {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  profile: UserProfile;
+  clubScopeId: string | null;
+  clubScopeName: string | null;
   createdAt: string;
 };
 
