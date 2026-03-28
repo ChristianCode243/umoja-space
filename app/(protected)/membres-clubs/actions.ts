@@ -1,9 +1,11 @@
 "use server";
 
 // Server actions for club members CRUD.
+// Les erreurs serveurs sont converties en messages utilisateur explicites.
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { actionError } from "@/lib/action-error";
 import { getClubMembers } from "./queries";
 import type { ClubMembersActionResult } from "./types";
 
@@ -177,9 +179,17 @@ export async function deleteClubMember(input: {
     return { ok: false, error: "Member id is required." };
   }
 
-  await prisma.clubMember.delete({ where: { id: input.id } });
+  try {
+    await prisma.clubMember.delete({ where: { id: input.id } });
 
-  revalidatePath("/membres-clubs");
-  const scopedClubId = currentUser.clubScopeId ?? undefined;
-  return { ok: true, members: await getClubMembers(scopedClubId) };
+    revalidatePath("/membres-clubs");
+    const scopedClubId = currentUser.clubScopeId ?? undefined;
+    return { ok: true, members: await getClubMembers(scopedClubId) };
+  } catch (error) {
+    return actionError<ClubMembersActionResult>(
+      "clubMembers.deleteClubMember",
+      error,
+      "Impossible de supprimer ce membre pour le moment."
+    );
+  }
 }

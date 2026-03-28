@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { requireUser } from "@/lib/auth";
+import { actionError } from "@/lib/action-error";
 import { getUsers } from "./queries";
 import {
   USER_PROFILES,
@@ -25,6 +26,10 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+/**
+ * Access gate for department-level user administration.
+ * ADMIN and INFORMATICIEN can both manage users.
+ */
 async function requireDepartmentManager() {
   const user = await requireUser();
   if (!["ADMIN", "INFORMATICIEN"].includes(user.profile)) {
@@ -185,9 +190,17 @@ export async function deleteUser(input: { id: string }): Promise<UsersActionResu
     return { ok: false, error: "You cannot delete your own account." };
   }
 
-  await prisma.session.deleteMany({ where: { userId: input.id } });
-  await prisma.user.delete({ where: { id: input.id } });
+  try {
+    await prisma.session.deleteMany({ where: { userId: input.id } });
+    await prisma.user.delete({ where: { id: input.id } });
 
-  revalidatePath("/departement");
-  return { ok: true, users: await getUsers() };
+    revalidatePath("/departement");
+    return { ok: true, users: await getUsers() };
+  } catch (error) {
+    return actionError<UsersActionResult>(
+      "users.deleteUser",
+      error,
+      "Impossible de supprimer cet utilisateur pour le moment."
+    );
+  }
 }
