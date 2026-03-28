@@ -12,18 +12,18 @@ export default async function ClubsPage() {
     return <p className="text-muted-foreground">Acces refuse a la section Clubs.</p>;
   }
 
-  const clubFilter = user.clubScopeId && !hasFullAccess(user) ? { id: user.clubScopeId } : undefined;
+  const scopedClubId = user.clubScopeId && !hasFullAccess(user) ? user.clubScopeId : undefined;
 
   const [clubs, members, contributions] = await Promise.all([
     hasFullAccess(user) || user.profile === "CHEF_CLUB" ? getClubs() : Promise.resolve([]),
     prisma.clubMember.findMany({
-      where: clubFilter,
+      where: scopedClubId ? { clubId: scopedClubId } : undefined,
       include: { club: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25,
     }),
     prisma.clubContribution.findMany({
-      where: clubFilter,
+      where: scopedClubId ? { clubId: scopedClubId } : undefined,
       include: { member: { select: { name: true } }, club: { select: { name: true } } },
       orderBy: [{ monthKey: "desc" }, { paidAt: "desc" }],
       take: 40,

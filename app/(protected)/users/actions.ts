@@ -25,9 +25,9 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-async function requireAdminUser() {
+async function requireDepartmentManager() {
   const user = await requireUser();
-  if (user.profile !== "ADMIN") {
+  if (!["ADMIN", "INFORMATICIEN"].includes(user.profile)) {
     return null;
   }
   return user;
@@ -61,7 +61,7 @@ export async function createUser(input: {
   clubScopeId?: string;
   password: string;
 }): Promise<UsersActionResult> {
-  const currentUser = await requireAdminUser();
+  const currentUser = await requireDepartmentManager();
   if (!currentUser) return { ok: false, error: "Access denied." };
 
   const name = input.name.trim();
@@ -117,7 +117,7 @@ export async function updateUser(input: {
   clubScopeId?: string;
   password?: string;
 }): Promise<UsersActionResult> {
-  const currentUser = await requireAdminUser();
+  const currentUser = await requireDepartmentManager();
   if (!currentUser) return { ok: false, error: "Access denied." };
 
   const name = input.name.trim();
@@ -177,7 +177,7 @@ export async function updateUser(input: {
 }
 
 export async function deleteUser(input: { id: string }): Promise<UsersActionResult> {
-  const currentUser = await requireAdminUser();
+  const currentUser = await requireDepartmentManager();
   if (!currentUser) return { ok: false, error: "Access denied." };
 
   if (!input.id) return { ok: false, error: "User id is required." };
