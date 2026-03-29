@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { createFinanceEntry } from "./actions";
 import type { FinanceEntryListItem } from "./types";
 import { Button } from "@/components/ui/button";
@@ -9,23 +9,27 @@ import { Label } from "@/components/ui/label";
 
 type FinanceEntriesManagerProps = {
   initialEntries: FinanceEntryListItem[];
+  initialSummary: {
+    totalIncomeCents: number;
+    totalExpenseCents: number;
+    caisseCents: number;
+  };
   canCreate: boolean;
 };
 
-export function FinanceEntriesManager({ initialEntries, canCreate }: FinanceEntriesManagerProps) {
+export function FinanceEntriesManager({
+  initialEntries,
+  initialSummary,
+  canCreate,
+}: FinanceEntriesManagerProps) {
   const [entries, setEntries] = useState(initialEntries);
+  const [summary, setSummary] = useState({
+    income: initialSummary.totalIncomeCents,
+    expense: initialSummary.totalExpenseCents,
+    caisse: initialSummary.caisseCents,
+  });
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const totals = useMemo(() => {
-    const income = entries.filter((entry) => entry.type === "INCOME").reduce((sum, entry) => sum + entry.amountCents, 0);
-    const expense = entries.filter((entry) => entry.type === "EXPENSE").reduce((sum, entry) => sum + entry.amountCents, 0);
-    return {
-      income,
-      expense,
-      caisse: income - expense,
-    };
-  }, [entries]);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -45,6 +49,21 @@ export function FinanceEntriesManager({ initialEntries, canCreate }: FinanceEntr
           return;
         }
         setEntries((prev) => [result.entry, ...prev].slice(0, 120));
+        setSummary((prev) => {
+          const income =
+            result.entry.type === "INCOME"
+              ? prev.income + result.entry.amountCents
+              : prev.income;
+          const expense =
+            result.entry.type === "EXPENSE"
+              ? prev.expense + result.entry.amountCents
+              : prev.expense;
+          return {
+            income,
+            expense,
+            caisse: income - expense,
+          };
+        });
       });
     });
   }
@@ -54,15 +73,15 @@ export function FinanceEntriesManager({ initialEntries, canCreate }: FinanceEntr
       <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border p-3">
           <p className="text-xs text-muted-foreground">Total entrees</p>
-          <p className="text-xl font-semibold">{(totals.income / 100).toFixed(2)}</p>
+          <p className="text-xl font-semibold">{(summary.income / 100).toFixed(2)}</p>
         </div>
         <div className="rounded-lg border p-3">
           <p className="text-xs text-muted-foreground">Total sorties</p>
-          <p className="text-xl font-semibold">{(totals.expense / 100).toFixed(2)}</p>
+          <p className="text-xl font-semibold">{(summary.expense / 100).toFixed(2)}</p>
         </div>
         <div className="rounded-lg border p-3">
           <p className="text-xs text-muted-foreground">Caisse actuelle</p>
-          <p className="text-xl font-semibold">{(totals.caisse / 100).toFixed(2)}</p>
+          <p className="text-xl font-semibold">{(summary.caisse / 100).toFixed(2)}</p>
         </div>
       </div>
 
