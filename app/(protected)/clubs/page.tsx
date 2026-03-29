@@ -1,23 +1,89 @@
-// Clubs management page (server component).
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getClubs } from "./queries";
+import { canAccessSection, hasFullAccess } from "@/lib/access";
 import { ClubsManager } from "./ClubsManager";
+import { getClubs } from "./queries";
 
 export default async function ClubsPage() {
-  const currentUser = await requireUser();
+  const user = await requireUser();
 
-  if (currentUser.role !== "ADMIN" && currentUser.role !== "STAFF") {
-    return (
-      <section className="space-y-3">
-        <h1 className="text-2xl font-semibold">Acces refuse</h1>
-        <p className="text-muted-foreground">
-          Vous n&apos;avez pas les droits pour gerer les clubs.
-        </p>
-      </section>
-    );
+  if (!canAccessSection(user, "clubs")) {
+    return <p className="text-muted-foreground">Acces refuse a la section Clubs.</p>;
   }
 
-  const clubs = await getClubs();
+  const scopedClubId = user.clubScopeId && !hasFullAccess(user) ? user.clubScopeId : undefined;
 
-  return <ClubsManager initialClubs={clubs} />;
+  const [clubs, members, contributions] = await Promise.all([
+    hasFullAccess(user) || user.profile === "CHEF_CLUB" ? getClubs() : Promise.resolve([]),
+    prisma.clubMember.findMany({
+      where: scopedClubId ? { clubId: scopedClubId } : undefined,
+      include: { club: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+    }),
+    prisma.clubContribution.findMany({
+      where: scopedClubId ? { clubId: scopedClubId } : undefined,
+      include: { member: { select: { name: true } }, club: { select: { name: true } } },
+      orderBy: [{ monthKey: "desc" }, { paidAt: "desc" }],
+      take: 40,
+    }),
+  ]);
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold">Clubs</h1>
+        <p className="text-muted-foreground">
+          Espace clubs pour les chefs de club et ambassadeurs.
+        </p>
+      </div>
+
+      {(hasFullAccess(user) || user.profile === "CHEF_CLUB") && (
+        <ClubsManager initialClubs={clubs} />
+      )}
+
+      <div className="rounded-lg border p-4">
+        <h2 className="text-xl font-semibold">Membres du club</h2>
+        <p className="text-sm text-muted-foreground">
+          Les ambassadeurs peuvent uniquement ajouter des membres, et consulter le tableau des cotisations.
+        </p>
+        <Link href="/membres-clubs" className="mt-2 inline-block text-sm underline">
+          Ouvrir la gestion des membres
+        </Link>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left">
+              <th className="px-3 py-2">Mois</th>
+              <th className="px-3 py-2">Club</th>
+              <th className="px-3 py-2">Membre</th>
+              <th className="px-3 py-2">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contributions.map((row) => (
+              <tr key={row.id} className="border-b last:border-0">
+                <td className="px-3 py-2">{row.monthKey}</td>
+                <td className="px-3 py-2">{row.club.name}</td>
+                <td className="px-3 py-2">{row.member.name}</td>
+                <td className="px-3 py-2">{(row.amountCents / 100).toFixed(2)}</td>
+              </tr>
+            ))}
+            {contributions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Aucune cotisation enregistree pour le moment.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-xs text-muted-foreground">{members.length} membre(s) affiches.</div>
+    </section>
+  );
 }

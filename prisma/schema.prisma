@@ -1,26 +1,35 @@
-// Prisma schema for SQLite now; switch provider to "mysql" later when you migrate.
-// Update DATABASE_URL accordingly when moving to MySQL.
+// Prisma schema configured for PostgreSQL (Vercel).
+// - umoja_PRISMA_DATABASE_URL: pooled/runtime Prisma URL
+// - umoja_DATABASE_URL: direct URL for migrations (directUrl)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("umoja_PRISMA_DATABASE_URL")
+  directUrl = env("umoja_DATABASE_URL")
 }
 
-enum UserRole {
+enum UserProfile {
   ADMIN
-  STAFF
-  USER
+  FINANCIER
+  LOGISTICIEN
+  CHEF_CLUB
+  AMBASSADEUR
+  DESIGNER
+  INFORMATICIEN
+  AUTEUR
 }
 
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
   name         String
-  role         UserRole   @default(USER)
+  profile      UserProfile @default(AUTEUR)
+  clubScopeId  String?
+  clubScope    Club?       @relation("UserClubScope", fields: [clubScopeId], references: [id], onDelete: SetNull)
   passwordHash String
   sessions     Session[]
   createdAt    DateTime   @default(now())
@@ -77,6 +86,8 @@ model Club {
   foundedAt   DateTime?
   ambassadors Ambassador[]
   members     ClubMember[]
+  scopedUsers User[]          @relation("UserClubScope")
+  contributions ClubContribution[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -107,11 +118,29 @@ model ClubMember {
   joinedAt  DateTime?
   clubId    String
   club      Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  contributions ClubContribution[]
 
   @@index([clubId])
+}
+
+model ClubContribution {
+  id          String     @id @default(cuid())
+  clubId      String
+  club        Club       @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  memberId    String
+  member      ClubMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  monthKey    String
+  amountCents Int
+  paidAt      DateTime   @default(now())
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([clubId, monthKey])
+  @@index([memberId, monthKey])
+  @@unique([memberId, monthKey])
 }
 
 model Book {
