@@ -39,6 +39,7 @@ export function ContributionsManager({
   const [monthFilter, setMonthFilter] = useState("ALL");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const memberById = useMemo(() => {
     return new Map(members.map((member) => [member.id, member]));

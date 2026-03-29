@@ -65,6 +65,7 @@ export function FinanceEntriesManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -184,6 +185,38 @@ export function FinanceEntriesManager({
         </>
       )}
 
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <Label htmlFor="finance-search">Recherche</Label>
+          <InputGroup className="mt-1 h-10 w-full bg-muted/30 shadow-sm">
+            <InputGroupAddon className="text-muted-foreground">
+              <Search className="size-4" aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="finance-search"
+              placeholder="Categorie, notes, auteur..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </InputGroup>
+        </div>
+        <div>
+          <Label htmlFor="finance-type-filter">Filtrer type</Label>
+          <select
+            id="finance-type-filter"
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(event.target.value as "ALL" | "INCOME" | "EXPENSE")
+            }
+            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            <option value="ALL">Tous</option>
+            <option value="INCOME">Entrees</option>
+            <option value="EXPENSE">Sorties</option>
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead>
@@ -197,7 +230,7 @@ export function FinanceEntriesManager({
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <tr key={entry.id} className="border-b last:border-0">
                 <td className="px-3 py-2">{new Date(entry.occurredAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2">{entry.type === "INCOME" ? "Entree" : "Sortie"}</td>
@@ -207,7 +240,7 @@ export function FinanceEntriesManager({
                 <td className="px-3 py-2">{entry.notes ?? "-"}</td>
               </tr>
             ))}
-            {entries.length === 0 && (
+            {filteredEntries.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Aucun mouvement enregistre.</td>
               </tr>
