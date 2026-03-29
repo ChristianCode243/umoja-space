@@ -118,7 +118,7 @@ model ClubMember {
   email     String?
   phone     String?
   city      String?
-  role      String?
+  status    String?  @map("role")
   joinedAt  DateTime?
   clubId    String
   club      Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
