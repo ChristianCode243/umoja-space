@@ -30,6 +30,7 @@ model User {
   clubScope    Club?       @relation("UserClubScope", fields: [clubScopeId], references: [id], onDelete: SetNull)
   passwordHash String
   sessions     Session[]
+  financeEntriesCreated FinanceEntry[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }

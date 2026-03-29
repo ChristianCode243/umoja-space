@@ -56,6 +56,9 @@ export async function createClub(input: {
   if (!currentUser) {
     return { ok: false, error: "Access denied." };
   }
+  if (currentUser.profile === "CHEF_CLUB") {
+    return { ok: false, error: "Vous ne pouvez pas creer de nouveaux clubs." };
+  }
 
   const name = normalizeText(input.name || "");
   const email = input.email ? normalizeEmail(input.email) : "";
@@ -144,6 +147,13 @@ export async function updateClub(input: {
   if (!club) {
     return { ok: false, error: "Club not found." };
   }
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    currentUser.clubScopeId !== id
+  ) {
+    return { ok: false, error: "Vous ne pouvez modifier que votre propre club." };
+  }
 
   if (email && club.email !== email) {
     const existing = await prisma.club.findUnique({ where: { email } });
@@ -183,6 +193,9 @@ export async function deleteClub(input: {
 
   if (!input.id) {
     return { ok: false, error: "Club id is required." };
+  }
+  if (currentUser.profile === "CHEF_CLUB") {
+    return { ok: false, error: "Vous ne pouvez pas supprimer un club." };
   }
 
   const club = await prisma.club.findUnique({

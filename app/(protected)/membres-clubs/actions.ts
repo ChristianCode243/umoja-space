@@ -143,10 +143,24 @@ export async function updateClubMember(input: {
   if (!member) {
     return { ok: false, error: "Member not found." };
   }
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    member.clubId !== currentUser.clubScopeId
+  ) {
+    return { ok: false, error: "Vous ne pouvez modifier que les membres de votre club." };
+  }
 
   const club = await prisma.club.findUnique({ where: { id: clubId } });
   if (!club) {
     return { ok: false, error: "Club not found." };
+  }
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    currentUser.clubScopeId !== clubId
+  ) {
+    return { ok: false, error: "Vous ne pouvez modifier que les membres de votre club." };
   }
 
   await prisma.clubMember.update({

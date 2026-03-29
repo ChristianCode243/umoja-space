@@ -31,6 +31,8 @@ import {
 
 type ClubsManagerProps = {
   initialClubs: ClubListItem[];
+  canCreateClub?: boolean;
+  canDeleteClub?: boolean;
 };
 
 function formatDateInput(value: string | null): string {
@@ -40,7 +42,11 @@ function formatDateInput(value: string | null): string {
   return value.slice(0, 10);
 }
 
-export function ClubsManager({ initialClubs }: ClubsManagerProps) {
+export function ClubsManager({
+  initialClubs,
+  canCreateClub = true,
+  canDeleteClub = true,
+}: ClubsManagerProps) {
   const [clubs, setClubs] = useState<ClubListItem[]>(initialClubs);
   const [editingClub, setEditingClub] = useState<ClubListItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -192,15 +198,17 @@ export function ClubsManager({ initialClubs }: ClubsManagerProps) {
             Creez, mettez a jour et suivez vos clubs.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingClub(null);
-            setError(null);
-            setIsModalOpen(true);
-          }}
-        >
-          Créer un club
-        </Button>
+        {canCreateClub && (
+          <Button
+            onClick={() => {
+              setEditingClub(null);
+              setError(null);
+              setIsModalOpen(true);
+            }}
+          >
+            Créer un club
+          </Button>
+        )}
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -428,16 +436,18 @@ export function ClubsManager({ initialClubs }: ClubsManagerProps) {
                           <Pencil className="size-4" aria-hidden="true" />
                           <span>Modifier</span>
                         </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(club.id)}
-                          disabled={isPending}
-                        >
-                          <Trash2 className="size-4" aria-hidden="true" />
-                          <span>Supprimer</span>
-                        </Button>
+                        {canDeleteClub && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(club.id)}
+                            disabled={isPending}
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                            <span>Supprimer</span>
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
