@@ -6,7 +6,7 @@ import { AuthorsManager } from "./AuthorsManager";
 export default async function AuteursPage() {
   const currentUser = await requireUser();
 
-  if (currentUser.role !== "ADMIN" && currentUser.role !== "STAFF") {
+  if (!["ADMIN", "INFORMATICIEN", "LOGISTICIEN", "AUTEUR"].includes(currentUser.profile)) {
     return (
       <section className="space-y-3">
         <h1 className="text-2xl font-semibold">Acces refuse</h1>

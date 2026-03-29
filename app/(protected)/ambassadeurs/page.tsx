@@ -7,7 +7,7 @@ import { AmbassadorsManager } from "./AmbassadorsManager";
 export default async function AmbassadeursPage() {
   const currentUser = await requireUser();
 
-  if (currentUser.role !== "ADMIN" && currentUser.role !== "STAFF") {
+  if (!["ADMIN", "INFORMATICIEN", "CHEF_CLUB"].includes(currentUser.profile)) {
     return (
       <section className="space-y-3">
         <h1 className="text-2xl font-semibold">Acces refuse</h1>
