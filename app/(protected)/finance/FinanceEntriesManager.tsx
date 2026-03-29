@@ -45,7 +45,6 @@ type FinanceEntriesManagerProps = {
   initialSummary: {
     totalIncomeCents: number;
     totalExpenseCents: number;
-    totalContributionsCents: number;
     caisseCents: number;
   };
   canCreate: boolean;
@@ -58,9 +57,7 @@ export function FinanceEntriesManager({
 }: FinanceEntriesManagerProps) {
   const [entries, setEntries] = useState(initialEntries);
   const [summary, setSummary] = useState({
-    income: initialSummary.totalIncomeCents + initialSummary.totalContributionsCents,
-    financeIncome: initialSummary.totalIncomeCents,
-    contributions: initialSummary.totalContributionsCents,
+    income: initialSummary.totalIncomeCents,
     expense: initialSummary.totalExpenseCents,
     caisse: initialSummary.caisseCents,
   });
@@ -90,39 +87,36 @@ export function FinanceEntriesManager({
         setSummary((prev) => {
           const income =
             result.entry.type === "INCOME"
-              ? prev.financeIncome + result.entry.amountCents
-              : prev.financeIncome;
+              ? prev.income + result.entry.amountCents
+              : prev.income;
           const expense =
             result.entry.type === "EXPENSE"
               ? prev.expense + result.entry.amountCents
               : prev.expense;
           return {
-            income: income + prev.contributions,
-            financeIncome: income,
-            contributions: prev.contributions,
+            income,
             expense,
-            caisse: income + prev.contributions - expense,
+            caisse: income - expense,
           };
         });
-        setIsModalOpen(false);
       });
     });
   }
 
   return (
     <section className="space-y-4">
-      <div className="grid grid-cols-3 gap-2 md:gap-3">
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50/80 p-2 md:p-3">
-          <p className="text-[10px] text-emerald-700 md:text-xs">Entrees</p>
-          <p className="text-sm font-semibold text-emerald-900 md:text-xl">{(summary.income / 100).toFixed(2)}</p>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Total entrees</p>
+          <p className="text-xl font-semibold">{(summary.income / 100).toFixed(2)}</p>
         </div>
-        <div className="rounded-lg border border-rose-300 bg-rose-50/80 p-2 md:p-3">
-          <p className="text-[10px] text-rose-700 md:text-xs">Sorties</p>
-          <p className="text-sm font-semibold text-rose-900 md:text-xl">{(summary.expense / 100).toFixed(2)}</p>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Total sorties</p>
+          <p className="text-xl font-semibold">{(summary.expense / 100).toFixed(2)}</p>
         </div>
-        <div className="rounded-lg border border-sky-300 bg-sky-50/80 p-2 md:p-3">
-          <p className="text-[10px] text-sky-700 md:text-xs">Caisse</p>
-          <p className="text-sm font-semibold text-sky-900 md:text-xl">{(summary.caisse / 100).toFixed(2)}</p>
+        <div className="rounded-lg border p-3">
+          <p className="text-xs text-muted-foreground">Caisse actuelle</p>
+          <p className="text-xl font-semibold">{(summary.caisse / 100).toFixed(2)}</p>
         </div>
       </div>
 
