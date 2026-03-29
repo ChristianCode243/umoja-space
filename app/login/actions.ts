@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { createSession } from "@/lib/auth";
+import { logServerError } from "@/lib/action-error";
 
 export type LoginState = {
   error?: string;
@@ -14,7 +15,8 @@ export async function login(
   _prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const email = String(formData.get("email") || "").trim().toLowerCase();
+  try {
+    const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
 
   // Basic validation to avoid empty submits.
@@ -32,6 +34,10 @@ export async function login(
     return { error: "Invalid credentials." };
   }
 
-  await createSession(user.id);
-  redirect("/users");
+    await createSession(user.id);
+    redirect("/dashboard");
+  } catch (error) {
+    logServerError("login", error);
+    return { error: "Une erreur est survenue pendant la connexion." };
+  }
 }

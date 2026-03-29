@@ -62,7 +62,7 @@ function parseOptionalDate(value: string): Date | null {
 async function requireManagerUser() {
   // Only admins or staff can manage books.
   const user = await requireUser();
-  if (user.role !== "ADMIN" && user.role !== "STAFF") {
+  if (!["ADMIN", "INFORMATICIEN", "LOGISTICIEN"].includes(user.profile)) {
     return null;
   }
   return user;
