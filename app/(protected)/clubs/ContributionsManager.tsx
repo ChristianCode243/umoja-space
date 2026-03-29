@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Search } from "lucide-react";
 import { createClubContribution } from "./actions";
 import type { ClubContributionItem, ClubMemberOption } from "./queries";
@@ -113,7 +113,6 @@ export function ContributionsManager({
         };
 
         setContributions((prev) => [next, ...prev].slice(0, 120));
-        formRef.current?.reset();
         setIsModalOpen(false);
       });
     });
@@ -190,7 +189,7 @@ export function ContributionsManager({
                   Saisissez une cotisation mensuelle d&apos;un membre.
                 </DialogDescription>
               </DialogHeader>
-              <form ref={formRef} action={handleSubmit} className="grid gap-3 md:grid-cols-2">
+              <form action={handleSubmit} className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2">
                   <Label htmlFor="memberId">Membre</Label>
                   <select
