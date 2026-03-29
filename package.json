@@ -19,7 +19,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "6.19.2",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -43,7 +43,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "prisma": "^6.6.0",
+    "prisma": "6.19.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
