@@ -7,13 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma generate",
-    "db:generate": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma generate",
-    "db:push": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma db push",
-    "db:migrate": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma migrate dev",
-    "db:seed": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma db seed",
-    "db:migrate:deploy": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma migrate deploy",
-    "db:seed:run": "DATABASE_URL=${umoja_PRISMA_DATABASE_URL:-$DATABASE_URL} DIRECT_URL=${umoja_DATABASE_URL:-$DIRECT_URL} prisma db seed"
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed:run": "prisma db seed"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

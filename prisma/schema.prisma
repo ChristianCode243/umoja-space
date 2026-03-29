@@ -1,15 +1,13 @@
-// Prisma schema configured for PostgreSQL (Vercel compatible).
-// Runtime uses DATABASE_URL and DIRECT_URL.
-// In this project, we auto-map from `umoja_*` env vars when needed.
+// Prisma schema configured for external MySQL.
+// Set DATABASE_URL in your .env / hosting environment.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserProfile {
