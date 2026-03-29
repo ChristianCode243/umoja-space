@@ -83,11 +83,7 @@ export async function createClubMember(input: {
   }
 
 
-  if (
-    (currentUser.profile === "AMBASSADEUR" || currentUser.profile === "CHEF_CLUB") &&
-    currentUser.clubScopeId &&
-    currentUser.clubScopeId !== clubId
-  ) {
+  if (currentUser.profile === "AMBASSADEUR" && currentUser.clubScopeId && currentUser.clubScopeId !== clubId) {
     return { ok: false, error: "Vous ne pouvez ajouter des membres que dans votre club." };
   }
   await prisma.clubMember.create({
@@ -195,16 +191,6 @@ export async function deleteClubMember(input: {
 
   if (!input.id) {
     return { ok: false, error: "Member id is required." };
-  }
-
-  if (currentUser.profile === "CHEF_CLUB" && currentUser.clubScopeId) {
-    const member = await prisma.clubMember.findUnique({
-      where: { id: input.id },
-      select: { clubId: true },
-    });
-    if (!member || member.clubId !== currentUser.clubScopeId) {
-      return { ok: false, error: "Vous ne pouvez supprimer que les membres de votre club." };
-    }
   }
 
   try {

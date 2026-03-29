@@ -22,7 +22,10 @@ export default async function MembresClubsPage() {
 
   const [members, clubs] = await Promise.all([
     getClubMembers(scopedClubId),
-    getClubOptions(scopedClubId),
+    getClubOptions(),
   ]);
-  return <ClubMembersManager initialMembers={members} clubs={clubs} />;
+
+  const visibleClubs = scopedClubId ? clubs.filter((club) => club.id === scopedClubId) : clubs;
+
+  return <ClubMembersManager initialMembers={members} clubs={visibleClubs} />;
 }

@@ -6,8 +6,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
-import { getClubsByScope } from "./queries";
-import type { ClubContributionActionResult, ClubsActionResult } from "./types";
+import { getClubs } from "./queries";
+import type { ClubsActionResult } from "./types";
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -101,7 +101,7 @@ export async function createClub(input: {
 
   try {
     revalidatePath("/clubs");
-    return { ok: true, clubs: await getClubsByScope() };
+    return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.createClub", error, "Impossible de creer le club.");
   }
@@ -177,7 +177,7 @@ export async function updateClub(input: {
 
   try {
     revalidatePath("/clubs");
-    return { ok: true, clubs: await getClubsByScope(currentUser.clubScopeId ?? undefined) };
+    return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.updateClub", error, "Impossible de mettre a jour le club.");
   }
@@ -222,75 +222,8 @@ export async function deleteClub(input: {
 
   try {
     revalidatePath("/clubs");
-    return { ok: true, clubs: await getClubsByScope() };
+    return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.deleteClub", error, "Impossible de supprimer le club.");
   }
-}
-
-function normalizeMonthKey(value: string): string {
-  const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}$/.test(trimmed)) {
-    return "";
-  }
-  return trimmed;
-}
-
-export async function createClubContribution(input: {
-  memberId: string;
-  monthKey: string;
-  amount: string;
-  notes?: string;
-}): Promise<ClubContributionActionResult> {
-  const currentUser = await requireUser();
-  if (!["ADMIN", "INFORMATICIEN", "CHEF_CLUB"].includes(currentUser.profile)) {
-    return { ok: false, error: "Access denied." };
-  }
-
-  const memberId = normalizeText(input.memberId || "");
-  const monthKey = normalizeMonthKey(input.monthKey || "");
-  const amount = Number(input.amount || 0);
-  const notes = normalizeText(input.notes || "");
-
-  if (!memberId || !monthKey || !Number.isFinite(amount) || amount <= 0) {
-    return { ok: false, error: "Membre, mois et montant sont requis." };
-  }
-
-  const member = await prisma.clubMember.findUnique({
-    where: { id: memberId },
-    select: { clubId: true },
-  });
-  if (!member) {
-    return { ok: false, error: "Membre introuvable." };
-  }
-
-  if (
-    currentUser.profile === "CHEF_CLUB" &&
-    currentUser.clubScopeId &&
-    member.clubId !== currentUser.clubScopeId
-  ) {
-    return { ok: false, error: "Vous ne pouvez ajouter des cotisations que pour votre club." };
-  }
-
-  try {
-    await prisma.clubContribution.create({
-      data: {
-        clubId: member.clubId,
-        memberId,
-        monthKey,
-        amountCents: Math.round(amount * 100),
-        notes: notes || null,
-      },
-    });
-  } catch (error) {
-    return actionError<ClubContributionActionResult>(
-      "clubs.createClubContribution",
-      error,
-      "Impossible d'ajouter cette cotisation (peut-etre deja enregistree pour ce membre et ce mois)."
-    );
-  }
-
-  revalidatePath("/clubs");
-  revalidatePath("/finance/cotisations");
-  return { ok: true };
 }
