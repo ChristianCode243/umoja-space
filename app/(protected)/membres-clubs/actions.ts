@@ -1,9 +1,11 @@
 "use server";
 
 // Server actions for club members CRUD.
+// Les erreurs serveurs sont converties en messages utilisateur explicites.
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { actionError } from "@/lib/action-error";
 import { getClubMembers } from "./queries";
 import type { ClubMembersActionResult } from "./types";
 
@@ -35,7 +37,7 @@ function parseOptionalDate(value: string): Date | null {
 async function requireManagerUser() {
   // Only admins or staff can manage club members.
   const user = await requireUser();
-  if (user.role !== "ADMIN" && user.role !== "STAFF") {
+  if (!["ADMIN", "INFORMATICIEN", "CHEF_CLUB", "AMBASSADEUR"].includes(user.profile)) {
     return null;
   }
   return user;
@@ -80,6 +82,14 @@ export async function createClubMember(input: {
     return { ok: false, error: "Club not found." };
   }
 
+
+  if (
+    (currentUser.profile === "AMBASSADEUR" || currentUser.profile === "CHEF_CLUB") &&
+    currentUser.clubScopeId &&
+    currentUser.clubScopeId !== clubId
+  ) {
+    return { ok: false, error: "Vous ne pouvez ajouter des membres que dans votre club." };
+  }
   await prisma.clubMember.create({
     data: {
       name,
@@ -93,7 +103,8 @@ export async function createClubMember(input: {
   });
 
   revalidatePath("/membres-clubs");
-  return { ok: true, members: await getClubMembers() };
+  const scopedClubId = currentUser.clubScopeId ?? undefined;
+  return { ok: true, members: await getClubMembers(scopedClubId) };
 }
 
 export async function updateClubMember(input: {
@@ -107,7 +118,7 @@ export async function updateClubMember(input: {
   clubId: string;
 }): Promise<ClubMembersActionResult> {
   const currentUser = await requireManagerUser();
-  if (!currentUser) {
+  if (!currentUser || currentUser.profile === "AMBASSADEUR") {
     return { ok: false, error: "Access denied." };
   }
 
@@ -136,10 +147,24 @@ export async function updateClubMember(input: {
   if (!member) {
     return { ok: false, error: "Member not found." };
   }
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    member.clubId !== currentUser.clubScopeId
+  ) {
+    return { ok: false, error: "Vous ne pouvez modifier que les membres de votre club." };
+  }
 
   const club = await prisma.club.findUnique({ where: { id: clubId } });
   if (!club) {
     return { ok: false, error: "Club not found." };
+  }
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    currentUser.clubScopeId !== clubId
+  ) {
+    return { ok: false, error: "Vous ne pouvez modifier que les membres de votre club." };
   }
 
   await prisma.clubMember.update({
@@ -156,14 +181,15 @@ export async function updateClubMember(input: {
   });
 
   revalidatePath("/membres-clubs");
-  return { ok: true, members: await getClubMembers() };
+  const scopedClubId = currentUser.clubScopeId ?? undefined;
+  return { ok: true, members: await getClubMembers(scopedClubId) };
 }
 
 export async function deleteClubMember(input: {
   id: string;
 }): Promise<ClubMembersActionResult> {
   const currentUser = await requireManagerUser();
-  if (!currentUser) {
+  if (!currentUser || currentUser.profile === "AMBASSADEUR") {
     return { ok: false, error: "Access denied." };
   }
 
@@ -171,8 +197,27 @@ export async function deleteClubMember(input: {
     return { ok: false, error: "Member id is required." };
   }
 
-  await prisma.clubMember.delete({ where: { id: input.id } });
+  if (currentUser.profile === "CHEF_CLUB" && currentUser.clubScopeId) {
+    const member = await prisma.clubMember.findUnique({
+      where: { id: input.id },
+      select: { clubId: true },
+    });
+    if (!member || member.clubId !== currentUser.clubScopeId) {
+      return { ok: false, error: "Vous ne pouvez supprimer que les membres de votre club." };
+    }
+  }
 
-  revalidatePath("/membres-clubs");
-  return { ok: true, members: await getClubMembers() };
+  try {
+    await prisma.clubMember.delete({ where: { id: input.id } });
+
+    revalidatePath("/membres-clubs");
+    const scopedClubId = currentUser.clubScopeId ?? undefined;
+    return { ok: true, members: await getClubMembers(scopedClubId) };
+  } catch (error) {
+    return actionError<ClubMembersActionResult>(
+      "clubMembers.deleteClubMember",
+      error,
+      "Impossible de supprimer ce membre pour le moment."
+    );
+  }
 }

@@ -23,7 +23,7 @@ async function main() {
       data: {
         email: adminEmail,
         name: "Admin",
-        role: "ADMIN",
+        profile: "ADMIN",
         passwordHash,
       },
     });

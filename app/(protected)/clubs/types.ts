@@ -21,3 +21,7 @@ export type ClubListItem = {
 export type ClubsActionResult =
   | { ok: true; clubs: ClubListItem[] }
   | { ok: false; error: string };
+
+export type ClubContributionActionResult =
+  | { ok: true }
+  | { ok: false; error: string };
