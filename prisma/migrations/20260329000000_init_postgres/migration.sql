@@ -2,9 +2,6 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'STAFF', 'USER');
-
--- CreateEnum
 CREATE TYPE "UserProfile" AS ENUM ('ADMIN', 'FINANCIER', 'LOGISTICIEN', 'CHEF_CLUB', 'AMBASSADEUR', 'DESIGNER', 'INFORMATICIEN', 'AUTEUR');
 
 -- CreateTable
@@ -12,7 +9,6 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "role" "UserRole" NOT NULL DEFAULT 'USER',
     "profile" "UserProfile" NOT NULL DEFAULT 'AUTEUR',
     "clubScopeId" TEXT,
     "passwordHash" TEXT NOT NULL,

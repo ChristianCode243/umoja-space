@@ -12,10 +12,15 @@ datasource db {
   directUrl = env("umoja_DATABASE_URL")
 }
 
-enum UserRole {
+enum UserProfile {
   ADMIN
-  STAFF
-  USER
+  FINANCIER
+  LOGISTICIEN
+  CHEF_CLUB
+  AMBASSADEUR
+  DESIGNER
+  INFORMATICIEN
+  AUTEUR
 }
 
 enum UserProfile {
@@ -33,7 +38,6 @@ model User {
   id           String     @id @default(cuid())
   email        String     @unique
   name         String
-  role         UserRole    @default(USER)
   profile      UserProfile @default(AUTEUR)
   clubScopeId  String?
   clubScope    Club?       @relation("UserClubScope", fields: [clubScopeId], references: [id], onDelete: SetNull)

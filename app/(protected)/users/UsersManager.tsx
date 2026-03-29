@@ -6,11 +6,10 @@ import { Pencil, Search, Trash2, Users } from "lucide-react";
 import { createUser, deleteUser, updateUser } from "./actions";
 import {
   USER_PROFILES,
-  USER_ROLES,
   type UserProfileOption,
-  type UserRoleOption,
 } from "./constants";
 import type { UserListItem } from "./types";
+import type { ClubOption } from "@/app/(protected)/clubs/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,21 +36,22 @@ import {
 type UsersManagerProps = {
   initialUsers: UserListItem[];
   currentUserEmail: string;
+  clubs: ClubOption[];
 };
 
-type RoleFilter = "ALL" | UserRoleOption;
 type ProfileFilter = "ALL" | UserProfileOption;
 
 export function UsersManager({
   initialUsers,
   currentUserEmail,
+  clubs,
 }: UsersManagerProps) {
   const [users, setUsers] = useState<UserListItem[]>(initialUsers);
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("ALL");
+  const [selectedProfile, setSelectedProfile] = useState<UserProfileOption>("AUTEUR");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -63,8 +63,8 @@ export function UsersManager({
     const normalized = searchTerm.trim().toLowerCase();
     let result = users;
 
-    if (roleFilter !== "ALL") {
-      result = result.filter((user) => user.role === roleFilter);
+    if (profileFilter !== "ALL") {
+      result = result.filter((user) => user.profile === profileFilter);
     }
 
     if (profileFilter !== "ALL") {
@@ -76,12 +76,12 @@ export function UsersManager({
     }
 
     return result.filter((user) =>
-      [user.name, user.email, user.role, user.profile, user.clubScopeName]
+      [user.name, user.email, user.profile, user.clubScopeName]
         .join(" ")
         .toLowerCase()
         .includes(normalized)
     );
-  }, [users, searchTerm, roleFilter, profileFilter]);
+  }, [users, searchTerm, profileFilter]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,7 +92,6 @@ export function UsersManager({
     const payload = {
       name: String(formData.get("name") || ""),
       email: String(formData.get("email") || ""),
-      role: String(formData.get("role") || "USER"),
       profile: String(formData.get("profile") || "AUTEUR"),
       clubScopeId: String(formData.get("clubScopeId") || ""),
       password: String(formData.get("password") || ""),
@@ -130,6 +129,7 @@ export function UsersManager({
   function handleEdit(user: UserListItem) {
     // Put the form into edit mode with the selected user values.
     setEditingUser(user);
+    setSelectedProfile(user.profile);
     setError(null);
     setIsModalOpen(true);
   }
@@ -142,6 +142,7 @@ export function UsersManager({
 
   function handleOpenCreateModal() {
     setEditingUser(null);
+    setSelectedProfile("AUTEUR");
     setError(null);
     setIsModalOpen(true);
   }
@@ -167,7 +168,6 @@ export function UsersManager({
   function handleResetFilters() {
     // Clear search and role filters.
     setSearchTerm("");
-    setRoleFilter("ALL");
     setProfileFilter("ALL");
   }
 
@@ -226,29 +226,15 @@ export function UsersManager({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Rôle</Label>
-                <select
-                  id="role"
-                  name="role"
-                  defaultValue={editingUser?.role ?? "USER"}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  {USER_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-
-              <div className="space-y-2">
+                            <div className="space-y-2">
                 <Label htmlFor="profile">Profil</Label>
                 <select
                   id="profile"
                   name="profile"
-                  defaultValue={editingUser?.profile ?? "AUTEUR"}
+                  value={selectedProfile}
+                  onChange={(event) =>
+                    setSelectedProfile(event.target.value as UserProfileOption)
+                  }
                   className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
                 >
                   {USER_PROFILES.map((profile) => (
@@ -259,15 +245,27 @@ export function UsersManager({
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="clubScopeId">Club de responsabilite</Label>
-                <Input
-                  id="clubScopeId"
-                  name="clubScopeId"
-                  defaultValue={editingUser?.clubScopeId ?? ""}
-                  placeholder="Id du club (chef / ambassadeur)"
-                />
-              </div>
+              {(selectedProfile === "CHEF_CLUB" || selectedProfile === "AMBASSADEUR") && (
+                <div className="space-y-2">
+                  <Label htmlFor="clubScopeId">Club de responsabilite</Label>
+                  <select
+                    id="clubScopeId"
+                    name="clubScopeId"
+                    defaultValue={editingUser?.clubScopeId ?? ""}
+                    className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    required
+                  >
+                    <option value="" disabled>
+                      Selectionnez un club
+                    </option>
+                    {clubs.map((club) => (
+                      <option key={club.id} value={club.id}>
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="password">
@@ -325,28 +323,28 @@ export function UsersManager({
                   <InputGroupInput
                     id="user-search"
                     name="user-search"
-                    placeholder="Nom, email ou role"
+                    placeholder="Nom, email ou profil"
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                   />
                 </InputGroup>
               </div>
 
-              <div className="w-full md:w-56">
-                <Label htmlFor="role-filter">Filtrer par role</Label>
+                            <div className="w-full md:w-56">
+                <Label htmlFor="profile-filter">Filtrer par profil</Label>
                 <select
-                  id="role-filter"
-                  name="role-filter"
-                  value={roleFilter}
+                  id="profile-filter"
+                  name="profile-filter"
+                  value={profileFilter}
                   onChange={(event) =>
-                    setRoleFilter(event.target.value as RoleFilter)
+                    setProfileFilter(event.target.value as ProfileFilter)
                   }
                   className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
                 >
-                  <option value="ALL">Tous les roles</option>
-                  {USER_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
+                  <option value="ALL">Tous les profils</option>
+                  {USER_PROFILES.map((profile) => (
+                    <option key={profile} value={profile}>
+                      {profile}
                     </option>
                   ))}
                 </select>
@@ -395,7 +393,6 @@ export function UsersManager({
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-4">Nom</th>
                   <th className="py-2 pr-4">Email</th>
-                  <th className="py-2 pr-4">Role</th>
                   <th className="py-2 pr-4">Profil</th>
                   <th className="py-2 pr-4">Club scope</th>
                   <th className="py-2 pr-4">Cree le</th>
@@ -407,7 +404,6 @@ export function UsersManager({
                   <tr key={user.id} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">{user.name}</td>
                     <td className="py-2 pr-4">{user.email}</td>
-                    <td className="py-2 pr-4">{user.role}</td>
                     <td className="py-2 pr-4">{user.profile}</td>
                     <td className="py-2 pr-4">{user.clubScopeName ?? "-"}</td>
                     <td className="py-2 pr-4">
@@ -442,7 +438,7 @@ export function UsersManager({
                 {filteredUsers.length === 0 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={6}
                       className="py-6 text-center text-muted-foreground"
                     >
                       Aucun utilisateur ne correspond a la recherche.

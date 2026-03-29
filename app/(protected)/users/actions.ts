@@ -6,16 +6,11 @@ import { hashPassword } from "@/lib/password";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
 import { getUsers } from "./queries";
-import {
-  USER_PROFILES,
-  USER_ROLES,
-  type UserProfileOption,
-  type UserRoleOption,
-} from "./constants";
+import { USER_PROFILES, type UserProfileOption } from "./constants";
 import type { UsersActionResult } from "./types";
 
-function isValidRole(role: string): role is UserRoleOption {
-  return USER_ROLES.includes(role as UserRoleOption);
+function isValidProfile(profile: string): profile is UserProfileOption {
+  return USER_PROFILES.includes(profile as UserProfileOption);
 }
 
 function isValidProfile(profile: string): profile is UserProfileOption {
@@ -61,7 +56,6 @@ async function ensureClubScope(
 export async function createUser(input: {
   name: string;
   email: string;
-  role: string;
   profile: string;
   clubScopeId?: string;
   password: string;
@@ -77,8 +71,8 @@ export async function createUser(input: {
     return { ok: false, error: "Name, email, and password are required." };
   }
 
-  if (!isValidRole(input.role) || !isValidProfile(input.profile)) {
-    return { ok: false, error: "Role or profile is not valid." };
+  if (!isValidProfile(input.profile)) {
+    return { ok: false, error: "Profile is not valid." };
   }
 
   if (password.length < 8) {
@@ -96,7 +90,6 @@ export async function createUser(input: {
       data: {
         name,
         email,
-        role: input.role,
         profile: input.profile,
         clubScopeId,
         passwordHash,
@@ -117,7 +110,6 @@ export async function updateUser(input: {
   id: string;
   name: string;
   email: string;
-  role: string;
   profile: string;
   clubScopeId?: string;
   password?: string;
@@ -133,8 +125,8 @@ export async function updateUser(input: {
     return { ok: false, error: "Id, name, and email are required." };
   }
 
-  if (!isValidRole(input.role) || !isValidProfile(input.profile)) {
-    return { ok: false, error: "Role or profile is not valid." };
+  if (!isValidProfile(input.profile)) {
+    return { ok: false, error: "Profile is not valid." };
   }
 
   const user = await prisma.user.findUnique({ where: { id: input.id } });
@@ -150,14 +142,12 @@ export async function updateUser(input: {
     const data: {
       name: string;
       email: string;
-      role: UserRoleOption;
       profile: UserProfileOption;
       clubScopeId: string | null;
       passwordHash?: string;
     } = {
       name,
       email,
-      role: input.role,
       profile: input.profile,
       clubScopeId,
     };

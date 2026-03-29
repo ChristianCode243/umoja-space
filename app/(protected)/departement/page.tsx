@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { canAccessSection } from "@/lib/access";
 import { UsersManager } from "@/app/(protected)/users/UsersManager";
 import { getUsers } from "@/app/(protected)/users/queries";
+import { getClubOptions } from "@/app/(protected)/clubs/queries";
 
 const miniTabs = [
   "Admin",
@@ -22,7 +23,7 @@ export default async function DepartementPage() {
     redirect("/dashboard");
   }
 
-  const users = await getUsers();
+  const [users, clubs] = await Promise.all([getUsers(), getClubOptions()]);
 
   return (
     <section className="space-y-6">
@@ -41,7 +42,7 @@ export default async function DepartementPage() {
         ))}
       </div>
 
-      <UsersManager initialUsers={users} currentUserEmail={user.email} />
+      <UsersManager initialUsers={users} currentUserEmail={user.email} clubs={clubs} />
     </section>
   );
 }
