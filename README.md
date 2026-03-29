@@ -41,8 +41,12 @@ Ce projet est configure pour utiliser PostgreSQL Vercel avec Prisma.
 
 ### Variables requises
 
-- `umoja_PRISMA_DATABASE_URL` : URL Prisma/pooling (utilisee pour le runtime Prisma)
-- `umoja_DATABASE_URL` : URL directe non-poolée (utilisee pour les migrations Prisma)
+- `DATABASE_URL` : URL Prisma/pooling (runtime)
+- `DIRECT_URL` : URL directe non-poolée (migrations)
+
+Variables alternatives deja supportees dans ce projet (auto-mapping):
+- `umoja_PRISMA_DATABASE_URL` -> `DATABASE_URL`
+- `umoja_DATABASE_URL` -> `DIRECT_URL`
 - `ADMIN_EMAIL` : email admin initial pour le seed (optionnel)
 - `ADMIN_PASSWORD` : mot de passe admin initial pour le seed (optionnel)
 
@@ -68,7 +72,8 @@ pnpm db:seed:run
 
 ### Si rien ne passe cote DB
 
-- Verifie que `umoja_PRISMA_DATABASE_URL` et `umoja_DATABASE_URL` existent bien dans **le meme environnement Vercel** (Production/Preview/Development) que ton deployment.
-- Verifie que `umoja_DATABASE_URL` est une URL **directe** (non poolée) compatible migration.
+- Verifie que `DATABASE_URL` et `DIRECT_URL` existent bien dans **le meme environnement Vercel** (Production/Preview/Development) que ton deployment.
+- Si tu gardes les variables prefixees (`umoja_*`), le projet les mappe automatiquement.
+- Verifie que `DIRECT_URL` (ou `umoja_DATABASE_URL`) est une URL **directe** (non poolée) compatible migration.
 - Redeploie apres ajout/modification des variables d'environnement.
 - Lance d'abord `pnpm prisma generate`, puis `pnpm db:migrate:deploy`, puis `pnpm db:seed:run`.

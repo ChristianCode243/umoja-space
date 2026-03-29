@@ -1,6 +1,6 @@
-// Prisma schema configured for PostgreSQL (Vercel).
-// - umoja_PRISMA_DATABASE_URL: pooled/runtime Prisma URL
-// - umoja_DATABASE_URL: direct URL for migrations (directUrl)
+// Prisma schema configured for PostgreSQL (Vercel compatible).
+// Runtime uses DATABASE_URL and DIRECT_URL.
+// In this project, we auto-map from `umoja_*` env vars when needed.
 
 generator client {
   provider = "prisma-client-js"
@@ -8,19 +8,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("umoja_PRISMA_DATABASE_URL")
-  directUrl = env("umoja_DATABASE_URL")
-}
-
-enum UserProfile {
-  ADMIN
-  FINANCIER
-  LOGISTICIEN
-  CHEF_CLUB
-  AMBASSADEUR
-  DESIGNER
-  INFORMATICIEN
-  AUTEUR
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserProfile {

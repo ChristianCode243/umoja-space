@@ -13,10 +13,6 @@ function isValidProfile(profile: string): profile is UserProfileOption {
   return USER_PROFILES.includes(profile as UserProfileOption);
 }
 
-function isValidProfile(profile: string): profile is UserProfileOption {
-  return USER_PROFILES.includes(profile as UserProfileOption);
-}
-
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
