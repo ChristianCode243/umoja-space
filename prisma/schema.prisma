@@ -23,6 +23,17 @@ enum UserProfile {
   AUTEUR
 }
 
+enum UserProfile {
+  ADMIN
+  FINANCIER
+  LOGISTICIEN
+  CHEF_CLUB
+  AMBASSADEUR
+  DESIGNER
+  INFORMATICIEN
+  AUTEUR
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique

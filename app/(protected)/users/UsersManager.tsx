@@ -67,6 +67,10 @@ export function UsersManager({
       result = result.filter((user) => user.profile === profileFilter);
     }
 
+    if (profileFilter !== "ALL") {
+      result = result.filter((user) => user.profile === profileFilter);
+    }
+
     if (!normalized) {
       return result;
     }
@@ -327,6 +331,26 @@ export function UsersManager({
               </div>
 
                             <div className="w-full md:w-56">
+                <Label htmlFor="profile-filter">Filtrer par profil</Label>
+                <select
+                  id="profile-filter"
+                  name="profile-filter"
+                  value={profileFilter}
+                  onChange={(event) =>
+                    setProfileFilter(event.target.value as ProfileFilter)
+                  }
+                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                >
+                  <option value="ALL">Tous les profils</option>
+                  {USER_PROFILES.map((profile) => (
+                    <option key={profile} value={profile}>
+                      {profile}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full md:w-56">
                 <Label htmlFor="profile-filter">Filtrer par profil</Label>
                 <select
                   id="profile-filter"
