@@ -34,3 +34,46 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Configuration PostgreSQL (Vercel)
+
+Ce projet est configure pour utiliser PostgreSQL Vercel avec Prisma.
+
+### Variables requises
+
+- `DATABASE_URL` : URL Prisma/pooling (runtime)
+- `DIRECT_URL` : URL directe non-poolée (migrations)
+
+Variables alternatives deja supportees dans ce projet (auto-mapping):
+- `umoja_PRISMA_DATABASE_URL` -> `DATABASE_URL`
+- `umoja_DATABASE_URL` -> `DIRECT_URL`
+- `ADMIN_EMAIL` : email admin initial pour le seed (optionnel)
+- `ADMIN_PASSWORD` : mot de passe admin initial pour le seed (optionnel)
+
+### Commandes de mise en place (production)
+
+1. Generer le client Prisma:
+
+```bash
+pnpm prisma generate
+```
+
+2. Appliquer les migrations en production:
+
+```bash
+pnpm db:migrate:deploy
+```
+
+3. Executer le seed:
+
+```bash
+pnpm db:seed:run
+```
+
+### Si rien ne passe cote DB
+
+- Verifie que `DATABASE_URL` et `DIRECT_URL` existent bien dans **le meme environnement Vercel** (Production/Preview/Development) que ton deployment.
+- Si tu gardes les variables prefixees (`umoja_*`), le projet les mappe automatiquement.
+- Verifie que `DIRECT_URL` (ou `umoja_DATABASE_URL`) est une URL **directe** (non poolée) compatible migration.
+- Redeploie apres ajout/modification des variables d'environnement.
+- Lance d'abord `pnpm prisma generate`, puis `pnpm db:migrate:deploy`, puis `pnpm db:seed:run`.

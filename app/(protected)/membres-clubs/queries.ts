@@ -1,10 +1,9 @@
-// Database queries for the Club Members page (server-only).
 import { prisma } from "@/lib/prisma";
 import type { ClubMemberListItem } from "./types";
 
-export async function getClubMembers(): Promise<ClubMemberListItem[]> {
-  // Fetch members with club info for display.
+export async function getClubMembers(clubId?: string): Promise<ClubMemberListItem[]> {
   const members = await prisma.clubMember.findMany({
+    where: clubId ? { clubId } : undefined,
     orderBy: { createdAt: "desc" },
     include: {
       club: true,
