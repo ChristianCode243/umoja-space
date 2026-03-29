@@ -48,9 +48,9 @@ export async function createClubMember(input: {
   email?: string;
   phone?: string;
   city?: string;
-  role?: string;
+  status?: string;
   joinedAt?: string;
-  clubId: string;
+  clubId?: string;
 }): Promise<ClubMembersActionResult> {
   const currentUser = await requireManagerUser();
   if (!currentUser) {
@@ -61,8 +61,12 @@ export async function createClubMember(input: {
   const email = input.email ? normalizeEmail(input.email) : "";
   const phone = input.phone ? normalizePhone(input.phone) : "";
   const city = input.city ? normalizeText(input.city) : "";
-  const role = input.role ? normalizeText(input.role) : "";
-  const clubId = normalizeText(input.clubId || "");
+  const status = input.status ? normalizeText(input.status) : "";
+  const requestedClubId = normalizeText(input.clubId || "");
+  const clubId =
+    currentUser.profile === "CHEF_CLUB" && currentUser.clubScopeId
+      ? currentUser.clubScopeId
+      : requestedClubId;
   const joinedAt = input.joinedAt ? parseOptionalDate(input.joinedAt) : null;
 
   if (!name || !clubId) {
@@ -92,7 +96,7 @@ export async function createClubMember(input: {
       email: email || null,
       phone: phone || null,
       city: city || null,
-      role: role || null,
+      status: status || null,
       joinedAt,
       clubId,
     },
@@ -109,7 +113,7 @@ export async function updateClubMember(input: {
   email?: string;
   phone?: string;
   city?: string;
-  role?: string;
+  status?: string;
   joinedAt?: string;
   clubId: string;
 }): Promise<ClubMembersActionResult> {
@@ -123,7 +127,7 @@ export async function updateClubMember(input: {
   const email = input.email ? normalizeEmail(input.email) : "";
   const phone = input.phone ? normalizePhone(input.phone) : "";
   const city = input.city ? normalizeText(input.city) : "";
-  const role = input.role ? normalizeText(input.role) : "";
+  const status = input.status ? normalizeText(input.status) : "";
   const clubId = normalizeText(input.clubId || "");
   const joinedAt = input.joinedAt ? parseOptionalDate(input.joinedAt) : null;
 
@@ -170,7 +174,7 @@ export async function updateClubMember(input: {
       email: email || null,
       phone: phone || null,
       city: city || null,
-      role: role || null,
+      status: status || null,
       joinedAt,
       clubId,
     },

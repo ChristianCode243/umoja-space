@@ -59,6 +59,7 @@ export function ClubMembersManager({
 
   const formKey = editingMember?.id ?? "new";
   const hasClubs = clubs.length > 0;
+  const lockedClubId = clubs.length === 1 ? clubs[0].id : "";
 
   // Extract unique cities for filters
   const uniqueCities = useMemo(() => {
@@ -89,7 +90,7 @@ export function ClubMembersManager({
         member.email,
         member.phone,
         member.city,
-        member.role,
+        member.status,
         member.clubName,
       ]
         .filter(Boolean)
@@ -110,9 +111,9 @@ export function ClubMembersManager({
       email: String(formData.get("email") || ""),
       phone: String(formData.get("phone") || ""),
       city: String(formData.get("city") || ""),
-      role: String(formData.get("role") || ""),
+      status: String(formData.get("status") || ""),
       joinedAt: String(formData.get("joinedAt") || ""),
-      clubId: String(formData.get("clubId") || ""),
+      clubId: String(formData.get("clubId") || lockedClubId),
     };
 
     startTransition(() => {
@@ -244,33 +245,40 @@ export function ClubMembersManager({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clubId">Club</Label>
-                <select
-                  id="clubId"
-                  name="clubId"
-                  defaultValue={editingMember?.clubId ?? ""}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  required
-                  disabled={!hasClubs}
-                >
-                  <option value="" disabled>
-                    Selectionnez un club
-                  </option>
-                  {clubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
+                <Label>Club</Label>
+                {lockedClubId ? (
+                  <>
+                    <Input value={clubs[0].name} disabled />
+                    <input type="hidden" name="clubId" value={editingMember?.clubId ?? lockedClubId} />
+                  </>
+                ) : (
+                  <select
+                    id="clubId"
+                    name="clubId"
+                    defaultValue={editingMember?.clubId ?? ""}
+                    className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    required
+                    disabled={!hasClubs}
+                  >
+                    <option value="" disabled>
+                      Selectionnez un club
                     </option>
-                  ))}
-                </select>
+                    {clubs.map((club) => (
+                      <option key={club.id} value={club.id}>
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="status">Statut</Label>
                 <Input
-                  id="role"
-                  name="role"
-                  defaultValue={editingMember?.role ?? ""}
-                  placeholder="Ex: President"
+                  id="status"
+                  name="status"
+                  defaultValue={editingMember?.status ?? ""}
+                  placeholder="Ex: Actif"
                 />
               </div>
 
@@ -421,7 +429,7 @@ export function ClubMembersManager({
                   <th className="py-2 pr-4">Nom</th>
                   <th className="py-2 pr-4">Club</th>
                   <th className="py-2 pr-4">Ville</th>
-                  <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Statut</th>
                   <th className="py-2 pr-4">Email</th>
                   <th className="py-2 pr-4">Telephone</th>
                   <th className="py-2 pr-4">Adhesion</th>
@@ -434,7 +442,7 @@ export function ClubMembersManager({
                     <td className="py-2 pr-4 font-medium">{member.name}</td>
                     <td className="py-2 pr-4">{member.clubName}</td>
                     <td className="py-2 pr-4">{member.city ?? "-"}</td>
-                    <td className="py-2 pr-4">{member.role ?? "-"}</td>
+                    <td className="py-2 pr-4">{member.status ?? "-"}</td>
                     <td className="py-2 pr-4">{member.email ?? "-"}</td>
                     <td className="py-2 pr-4">{member.phone ?? "-"}</td>
                     <td className="py-2 pr-4">
