@@ -60,3 +60,14 @@ DATABASE_URL="mysql://root:secret@127.0.0.1:3306/umja_space"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="ChangeMe123!"
 ```
+
+
+### Diagnostic si Vercel deploie un ancien commit
+
+Si le SHA affiche dans les logs Vercel ne correspond pas au dernier commit GitHub:
+
+1. Verifie la branche source du projet Vercel (ex: `main`).
+2. Lance un **Redeploy** depuis le dernier commit.
+3. Si besoin, utilise **Redeploy with cache cleared**.
+4. Confirme dans les logs que le SHA source est bien le dernier commit attendu.
+
