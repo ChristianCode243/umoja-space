@@ -22,7 +22,7 @@ function normalizePhone(value: string): string {
 async function requireManagerUser() {
   // Only admins or staff can manage designers.
   const user = await requireUser();
-  if (user.role !== "ADMIN" && user.role !== "STAFF") {
+  if (!["ADMIN", "INFORMATICIEN", "LOGISTICIEN", "DESIGNER"].includes(user.profile)) {
     return null;
   }
   return user;
