@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 
 // Keep a single instance in the global scope during development.
+
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
