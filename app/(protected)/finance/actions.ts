@@ -6,6 +6,24 @@ import { prisma } from "@/lib/prisma";
 import { actionError } from "@/lib/action-error";
 import type { FinanceEntryActionResult } from "./types";
 
+const INCOME_CATEGORIES = new Set([
+  "edition_livre",
+  "vente_livre",
+  "frais_formation",
+  "subvention",
+  "prestation_annexe",
+  "partenariat_sponsoring",
+  "autre",
+]);
+
+const EXPENSE_CATEGORIES = new Set([
+  "achat_materiel",
+  "production_editoriale",
+  "distribution_commercialisation",
+  "charge_administrative_fiscale",
+  "autre",
+]);
+
 function normalizeText(value: string): string {
   return value.trim();
 }
@@ -37,7 +55,11 @@ export async function createFinanceEntry(input: {
   const notes = normalizeText(input.notes || "");
   const occurredAt = parseDate(input.occurredAt || "");
 
-  if (!["INCOME", "EXPENSE"].includes(type) || !Number.isFinite(amount) || amount <= 0 || !category || !occurredAt) {
+  const validCategory =
+    (type === "INCOME" && INCOME_CATEGORIES.has(category)) ||
+    (type === "EXPENSE" && EXPENSE_CATEGORIES.has(category));
+
+  if (!["INCOME", "EXPENSE"].includes(type) || !Number.isFinite(amount) || amount <= 0 || !category || !occurredAt || !validCategory) {
     return { ok: false, error: "Type, montant, categorie et date sont requis." };
   }
 
