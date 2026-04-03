@@ -42,6 +42,7 @@ export default async function FinanceContributionsPage() {
         members={members}
         canCreate={false}
         readOnlyLabel="(lecture seule pour le service finance)."
+        enableClubFilter={user.profile === "FINANCIER"}
       />
     </div>
   );

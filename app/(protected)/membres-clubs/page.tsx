@@ -27,5 +27,11 @@ export default async function MembresClubsPage() {
 
   const visibleClubs = scopedClubId ? clubs.filter((club) => club.id === scopedClubId) : clubs;
 
-  return <ClubMembersManager initialMembers={members} clubs={visibleClubs} />;
+  return (
+    <ClubMembersManager
+      initialMembers={members}
+      clubs={visibleClubs}
+      showClubCityFilters={currentUser.profile !== "CHEF_CLUB" && currentUser.profile !== "AMBASSADEUR"}
+    />
+  );
 }

@@ -31,6 +31,7 @@ import {
 type ClubMembersManagerProps = {
   initialMembers: ClubMemberListItem[];
   clubs: ClubOption[];
+  showClubCityFilters?: boolean;
 };
 
 type ClubFilter = "ALL" | string;
@@ -45,6 +46,7 @@ function formatDateInput(value: string | null): string {
 export function ClubMembersManager({
   initialMembers,
   clubs,
+  showClubCityFilters = true,
 }: ClubMembersManagerProps) {
   const [members, setMembers] = useState<ClubMemberListItem[]>(initialMembers);
   const [editingMember, setEditingMember] =
@@ -72,11 +74,11 @@ export function ClubMembersManager({
     const normalized = searchTerm.trim().toLowerCase();
     let result = members;
 
-    if (clubFilter !== "ALL") {
+    if (showClubCityFilters && clubFilter !== "ALL") {
       result = result.filter((member) => member.clubId === clubFilter);
     }
 
-    if (cityFilter !== "ALL") {
+    if (showClubCityFilters && cityFilter !== "ALL") {
       result = result.filter((member) => member.city === cityFilter);
     }
 
@@ -98,7 +100,7 @@ export function ClubMembersManager({
         .toLowerCase()
         .includes(normalized)
     );
-  }, [members, searchTerm, clubFilter, cityFilter]);
+  }, [members, searchTerm, clubFilter, cityFilter, showClubCityFilters]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -369,52 +371,56 @@ export function ClubMembersManager({
                 </InputGroup>
               </div>
 
-              <div className="w-full md:w-48">
-                <Label htmlFor="club-filter">Filtrer par club</Label>
-                <select
-                  id="club-filter"
-                  name="club-filter"
-                  value={clubFilter}
-                  onChange={(event) => setClubFilter(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  <option value="ALL">Tous les clubs</option>
-                  {clubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {showClubCityFilters && (
+                <>
+                  <div className="w-full md:w-48">
+                    <Label htmlFor="club-filter">Filtrer par club</Label>
+                    <select
+                      id="club-filter"
+                      name="club-filter"
+                      value={clubFilter}
+                      onChange={(event) => setClubFilter(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="ALL">Tous les clubs</option>
+                      {clubs.map((club) => (
+                        <option key={club.id} value={club.id}>
+                          {club.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-48">
-                <Label htmlFor="city-filter">Filtrer par ville</Label>
-                <select
-                  id="city-filter"
-                  name="city-filter"
-                  value={cityFilter}
-                  onChange={(event) => setCityFilter(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  <option value="ALL">Toutes les villes</option>
-                  {uniqueCities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="w-full md:w-48">
+                    <Label htmlFor="city-filter">Filtrer par ville</Label>
+                    <select
+                      id="city-filter"
+                      name="city-filter"
+                      value={cityFilter}
+                      onChange={(event) => setCityFilter(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="ALL">Toutes les villes</option>
+                      {uniqueCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full md:w-auto"
-                  onClick={handleResetFilters}
-                >
-                  Reinitialiser
-                </Button>
-              </div>
+                  <div className="w-full md:w-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full md:w-auto"
+                      onClick={handleResetFilters}
+                    >
+                      Reinitialiser
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             <p className="text-xs text-muted-foreground">

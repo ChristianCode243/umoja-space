@@ -25,6 +25,7 @@ type ContributionsManagerProps = {
   members: ClubMemberOption[];
   canCreate: boolean;
   readOnlyLabel?: string;
+  enableClubFilter?: boolean;
 };
 
 export function ContributionsManager({
@@ -32,6 +33,7 @@ export function ContributionsManager({
   members,
   canCreate,
   readOnlyLabel,
+  enableClubFilter = false,
 }: ContributionsManagerProps) {
   const [contributions, setContributions] = useState(initialContributions);
   const [isModalOpen, setIsModalOpen] = useState(false);
