@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Search } from "lucide-react";
 import { createClubContribution } from "./actions";
 import type { ClubContributionItem, ClubMemberOption } from "./queries";
@@ -39,7 +39,6 @@ export function ContributionsManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [monthFilter, setMonthFilter] = useState("ALL");
-  const [clubFilter, setClubFilter] = useState("ALL");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -52,18 +51,11 @@ export function ContributionsManager({
     const keys = new Set(contributions.map((row) => row.monthKey));
     return Array.from(keys).sort().reverse();
   }, [contributions]);
-  const uniqueClubs = useMemo(() => {
-    const clubs = new Set(contributions.map((row) => row.clubName));
-    return Array.from(clubs).sort();
-  }, [contributions]);
 
   const filteredContributions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
     return contributions.filter((row) => {
       if (monthFilter !== "ALL" && row.monthKey !== monthFilter) {
-        return false;
-      }
-      if (clubFilter !== "ALL" && row.clubName !== clubFilter) {
         return false;
       }
       if (!normalized) {
@@ -75,7 +67,7 @@ export function ContributionsManager({
         .toLowerCase()
         .includes(normalized);
     });
-  }, [clubFilter, contributions, monthFilter, searchTerm]);
+  }, [contributions, monthFilter, searchTerm]);
 
   const totals = useMemo(() => {
     const totalCents = contributions.reduce((sum, row) => sum + row.amountCents, 0);
@@ -123,7 +115,6 @@ export function ContributionsManager({
         };
 
         setContributions((prev) => [next, ...prev].slice(0, 120));
-        formRef.current?.reset();
         setIsModalOpen(false);
       });
     });
@@ -154,7 +145,7 @@ export function ContributionsManager({
         </div>
       </div>
 
-      <div className={`grid gap-3 ${enableClubFilter ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+      <div className="grid gap-3 md:grid-cols-3">
         <div className="md:col-span-2">
           <Label htmlFor="contribution-search">Recherche</Label>
           <InputGroup className="mt-1 h-10 w-full bg-muted/30 shadow-sm">
@@ -185,24 +176,6 @@ export function ContributionsManager({
             ))}
           </select>
         </div>
-        {enableClubFilter && (
-          <div>
-            <Label htmlFor="club-filter">Filtrer par club</Label>
-            <select
-              id="club-filter"
-              value={clubFilter}
-              onChange={(event) => setClubFilter(event.target.value)}
-              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-            >
-              <option value="ALL">Tous les clubs</option>
-              {uniqueClubs.map((club) => (
-                <option key={club} value={club}>
-                  {club}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {canCreate && (
@@ -218,7 +191,7 @@ export function ContributionsManager({
                   Saisissez une cotisation mensuelle d&apos;un membre.
                 </DialogDescription>
               </DialogHeader>
-              <form ref={formRef} action={handleSubmit} className="grid gap-3 md:grid-cols-2">
+              <form action={handleSubmit} className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2">
                   <Label htmlFor="memberId">Membre</Label>
                   <select
