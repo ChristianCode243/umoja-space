@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
 import type { FinanceEntryActionResult } from "./types";
 
 const INCOME_CATEGORIES = new Set([
@@ -78,6 +79,13 @@ export async function createFinanceEntry(input: {
 
     revalidatePath("/finance");
     revalidatePath("/finance/entrees-sorties");
+    await auditLog({
+      actorId: user.id,
+      action: "FINANCE_ENTRY_CREATE",
+      entityType: "FinanceEntry",
+      entityId: created.id,
+      details: { type, amountCents: created.amountCents, category },
+    });
 
     return {
       ok: true,

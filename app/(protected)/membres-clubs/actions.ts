@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
 import { getClubMembers } from "./queries";
 import type { ClubMembersActionResult } from "./types";
 
@@ -103,6 +104,12 @@ export async function createClubMember(input: {
   });
 
   revalidatePath("/membres-clubs");
+  await auditLog({
+    actorId: currentUser.id,
+    action: "CLUB_MEMBER_CREATE",
+    entityType: "ClubMember",
+    details: { name, clubId },
+  });
   const scopedClubId = currentUser.clubScopeId ?? undefined;
   return { ok: true, members: await getClubMembers(scopedClubId) };
 }
@@ -181,6 +188,13 @@ export async function updateClubMember(input: {
   });
 
   revalidatePath("/membres-clubs");
+  await auditLog({
+    actorId: currentUser.id,
+    action: "CLUB_MEMBER_UPDATE",
+    entityType: "ClubMember",
+    entityId: id,
+    details: { name, clubId },
+  });
   const scopedClubId = currentUser.clubScopeId ?? undefined;
   return { ok: true, members: await getClubMembers(scopedClubId) };
 }
@@ -201,6 +215,12 @@ export async function deleteClubMember(input: {
     await prisma.clubMember.delete({ where: { id: input.id } });
 
     revalidatePath("/membres-clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_MEMBER_DELETE",
+      entityType: "ClubMember",
+      entityId: input.id,
+    });
     const scopedClubId = currentUser.clubScopeId ?? undefined;
     return { ok: true, members: await getClubMembers(scopedClubId) };
   } catch (error) {

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
 import { getClubs } from "./queries";
 import type { ClubContributionActionResult, ClubsActionResult } from "./types";
 
@@ -105,6 +106,12 @@ export async function createClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_CREATE",
+      entityType: "Club",
+      details: { name },
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.createClub", error, "Impossible de creer le club.");
@@ -181,6 +188,13 @@ export async function updateClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_UPDATE",
+      entityType: "Club",
+      entityId: id,
+      details: { name },
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.updateClub", error, "Impossible de mettre a jour le club.");
@@ -226,6 +240,12 @@ export async function deleteClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_DELETE",
+      entityType: "Club",
+      entityId: input.id,
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.deleteClub", error, "Impossible de supprimer le club.");
