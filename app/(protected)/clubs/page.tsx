@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { canAccessSection, hasFullAccess } from "@/lib/access";
 import { ContributionsManager } from "./ContributionsManager";
-import { ContributionsSpreadsheet } from "./ContributionsSpreadsheet";
 import { ClubsManager } from "./ClubsManager";
 import {
   getClubContributions,
@@ -19,7 +18,6 @@ export default async function ClubsPage() {
 
   const scopedClubId = user.clubScopeId && !hasFullAccess(user) ? user.clubScopeId : undefined;
   const canManageClubs = hasFullAccess(user);
-  const usesSpreadsheet = user.profile === "CHEF_CLUB" || user.profile === "AMBASSADEUR";
   const canManageContributions = user.profile === "CHEF_CLUB" || hasFullAccess(user);
 
   const [clubs, members, contributions] = await Promise.all([
@@ -61,20 +59,43 @@ export default async function ClubsPage() {
         </Link>
       </div>
 
-      {usesSpreadsheet ? (
-        <ContributionsSpreadsheet
-          initialContributions={contributions}
-          members={members}
-          canEdit={user.profile === "CHEF_CLUB"}
-        />
-      ) : (
-        <ContributionsManager
-          initialContributions={contributions}
-          members={members}
-          canCreate={canManageContributions}
-          readOnlyLabel="(lecture seule)"
-        />
-      )}
+      <ContributionsManager
+        initialContributions={contributions}
+        members={members}
+        canCreate={canManageContributions}
+        readOnlyLabel="(lecture seule)"
+      />
+
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40 text-left">
+              <th className="px-3 py-2">Mois</th>
+              <th className="px-3 py-2">Club</th>
+              <th className="px-3 py-2">Membre</th>
+              <th className="px-3 py-2">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contributions.map((row) => (
+              <tr key={row.id} className="border-b last:border-0">
+                <td className="px-3 py-2">{row.monthKey}</td>
+                <td className="px-3 py-2">{row.clubName}</td>
+                <td className="px-3 py-2">{row.memberName}</td>
+                <td className="px-3 py-2">{(row.amountCents / 100).toFixed(2)}</td>
+              </tr>
+            ))}
+            {contributions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Aucune cotisation enregistree pour le moment.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
       <div className="text-xs text-muted-foreground">{members.length} membre(s) dans votre perimetre.</div>
     </section>
   );
