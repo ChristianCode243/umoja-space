@@ -48,10 +48,6 @@ function normalizeMonthKey(value: string): string {
   return value.trim();
 }
 
-function buildMonthKey(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
-
 export async function createClub(input: {
   name: string;
   email?: string;
@@ -317,13 +313,6 @@ export async function createClubContribution(input: {
 
     revalidatePath("/clubs");
     revalidatePath("/finance/cotisations");
-    await auditLog({
-      actorId: currentUser.id,
-      action: "CONTRIBUTION_UPSERT",
-      entityType: "ClubContribution",
-      entityId: `${member.id}:${monthKey}`,
-      details: { amountCents: Math.round(amount * 100) },
-    });
 
     return { ok: true };
   } catch (error) {
@@ -331,108 +320,6 @@ export async function createClubContribution(input: {
       "clubs.createClubContribution",
       error,
       "Impossible d'enregistrer la cotisation."
-    );
-  }
-}
-
-export async function saveClubContributionsMatrix(input: {
-  year: number;
-  amount: string;
-  selectedByMember: Record<string, string[]>;
-}): Promise<ClubContributionActionResult> {
-  const currentUser = await requireManagerUser();
-  if (!currentUser || currentUser.profile === "AMBASSADEUR") {
-    return { ok: false, error: "Access denied." };
-  }
-
-  const amount = Number(input.amount || 0);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { ok: false, error: "Montant mensuel invalide." };
-  }
-
-  const year = Number(input.year);
-  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-    return { ok: false, error: "Annee invalide." };
-  }
-
-  const memberIds = Object.keys(input.selectedByMember ?? {});
-  if (memberIds.length === 0) {
-    return { ok: true };
-  }
-
-  const members = await prisma.clubMember.findMany({
-    where: {
-      id: { in: memberIds },
-      ...(currentUser.clubScopeId ? { clubId: currentUser.clubScopeId } : {}),
-    },
-    select: { id: true, clubId: true },
-  });
-
-  const allowedMembers = new Map(members.map((member) => [member.id, member]));
-  const months = Array.from({ length: 12 }, (_, index) => buildMonthKey(year, index + 1));
-  const amountCents = Math.round(amount * 100);
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      for (const memberId of memberIds) {
-        const member = allowedMembers.get(memberId);
-        if (!member) {
-          continue;
-        }
-
-        const selectedSet = new Set(
-          (input.selectedByMember[memberId] ?? []).filter((monthKey) => months.includes(monthKey))
-        );
-        const existing = await tx.clubContribution.findMany({
-          where: {
-            memberId,
-            monthKey: { in: months },
-          },
-          select: { id: true, monthKey: true },
-        });
-
-        const existingSet = new Set(existing.map((row) => row.monthKey));
-
-        for (const monthKey of months) {
-          const shouldExist = selectedSet.has(monthKey);
-          const exists = existingSet.has(monthKey);
-
-          if (shouldExist && !exists) {
-            await tx.clubContribution.create({
-              data: {
-                clubId: member.clubId,
-                memberId,
-                monthKey,
-                amountCents,
-              },
-            });
-          }
-
-          if (!shouldExist && exists) {
-            await tx.clubContribution.deleteMany({
-              where: { memberId, monthKey },
-            });
-          }
-        }
-      }
-    });
-
-    revalidatePath("/clubs");
-    revalidatePath("/finance");
-    revalidatePath("/finance/cotisations");
-    await auditLog({
-      actorId: currentUser.id,
-      action: "CONTRIBUTION_MATRIX_SAVE",
-      entityType: "ClubContribution",
-      details: { year, memberCount: memberIds.length },
-    });
-
-    return { ok: true };
-  } catch (error) {
-    return actionError<ClubContributionActionResult>(
-      "clubs.saveClubContributionsMatrix",
-      error,
-      "Impossible d'enregistrer les cotisations."
     );
   }
 }
