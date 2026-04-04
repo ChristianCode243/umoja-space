@@ -51,7 +51,7 @@ export function ContributionsManager({
     const keys = new Set(contributions.map((row) => row.monthKey));
     return Array.from(keys).sort().reverse();
   }, [contributions]);
-
+i
   const filteredContributions = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
     return contributions.filter((row) => {

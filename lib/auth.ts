@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { auditLog } from "@/lib/audit";
 import type { User } from "@prisma/client";
 
 const SESSION_COOKIE_NAME = "umja_session";
@@ -32,6 +33,11 @@ export async function createSession(userId: string): Promise<void> {
       userId,
       expiresAt,
     },
+  });
+  await auditLog({
+    actorId: userId,
+    action: "SESSION_LOGIN",
+    entityType: "Session",
   });
 
   // cookies() is async in Next 16, so unwrap it before use.
@@ -78,6 +84,12 @@ export async function requireUser(): Promise<User> {
   if (!user) {
     redirect("/login");
   }
+  await auditLog({
+    actorId: user.id,
+    action: "AUTHENTICATED_ACCESS",
+    entityType: "User",
+    entityId: user.id,
+  });
   return user;
 }
 
@@ -90,7 +102,16 @@ export async function clearSession(): Promise<void> {
   }
 
   const tokenHash = hashToken(sessionCookie.value);
+  const session = await prisma.session.findUnique({
+    where: { tokenHash },
+    select: { userId: true },
+  });
   await prisma.session.deleteMany({ where: { tokenHash } });
+  await auditLog({
+    actorId: session?.userId ?? null,
+    action: "SESSION_LOGOUT",
+    entityType: "Session",
+  });
 
   cookieStore.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
