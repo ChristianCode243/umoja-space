@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
 import { getClubMembers } from "./queries";
 import type { ClubMembersActionResult } from "./types";
 
@@ -48,9 +49,9 @@ export async function createClubMember(input: {
   email?: string;
   phone?: string;
   city?: string;
-  role?: string;
+  status?: string;
   joinedAt?: string;
-  clubId: string;
+  clubId?: string;
 }): Promise<ClubMembersActionResult> {
   const currentUser = await requireManagerUser();
   if (!currentUser) {
@@ -61,8 +62,12 @@ export async function createClubMember(input: {
   const email = input.email ? normalizeEmail(input.email) : "";
   const phone = input.phone ? normalizePhone(input.phone) : "";
   const city = input.city ? normalizeText(input.city) : "";
-  const role = input.role ? normalizeText(input.role) : "";
-  const clubId = normalizeText(input.clubId || "");
+  const status = input.status ? normalizeText(input.status) : "";
+  const requestedClubId = normalizeText(input.clubId || "");
+  const clubId =
+    currentUser.profile === "CHEF_CLUB" && currentUser.clubScopeId
+      ? currentUser.clubScopeId
+      : requestedClubId;
   const joinedAt = input.joinedAt ? parseOptionalDate(input.joinedAt) : null;
 
   if (!name || !clubId) {
@@ -92,13 +97,19 @@ export async function createClubMember(input: {
       email: email || null,
       phone: phone || null,
       city: city || null,
-      role: role || null,
+      status: status || null,
       joinedAt,
       clubId,
     },
   });
 
   revalidatePath("/membres-clubs");
+  await auditLog({
+    actorId: currentUser.id,
+    action: "CLUB_MEMBER_CREATE",
+    entityType: "ClubMember",
+    details: { name, clubId },
+  });
   const scopedClubId = currentUser.clubScopeId ?? undefined;
   return { ok: true, members: await getClubMembers(scopedClubId) };
 }
@@ -109,7 +120,7 @@ export async function updateClubMember(input: {
   email?: string;
   phone?: string;
   city?: string;
-  role?: string;
+  status?: string;
   joinedAt?: string;
   clubId: string;
 }): Promise<ClubMembersActionResult> {
@@ -123,7 +134,7 @@ export async function updateClubMember(input: {
   const email = input.email ? normalizeEmail(input.email) : "";
   const phone = input.phone ? normalizePhone(input.phone) : "";
   const city = input.city ? normalizeText(input.city) : "";
-  const role = input.role ? normalizeText(input.role) : "";
+  const status = input.status ? normalizeText(input.status) : "";
   const clubId = normalizeText(input.clubId || "");
   const joinedAt = input.joinedAt ? parseOptionalDate(input.joinedAt) : null;
 
@@ -170,13 +181,20 @@ export async function updateClubMember(input: {
       email: email || null,
       phone: phone || null,
       city: city || null,
-      role: role || null,
+      status: status || null,
       joinedAt,
       clubId,
     },
   });
 
   revalidatePath("/membres-clubs");
+  await auditLog({
+    actorId: currentUser.id,
+    action: "CLUB_MEMBER_UPDATE",
+    entityType: "ClubMember",
+    entityId: id,
+    details: { name, clubId },
+  });
   const scopedClubId = currentUser.clubScopeId ?? undefined;
   return { ok: true, members: await getClubMembers(scopedClubId) };
 }
@@ -197,6 +215,12 @@ export async function deleteClubMember(input: {
     await prisma.clubMember.delete({ where: { id: input.id } });
 
     revalidatePath("/membres-clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_MEMBER_DELETE",
+      entityType: "ClubMember",
+      entityId: input.id,
+    });
     const scopedClubId = currentUser.clubScopeId ?? undefined;
     return { ok: true, members: await getClubMembers(scopedClubId) };
   } catch (error) {

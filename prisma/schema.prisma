@@ -21,6 +21,11 @@ enum UserProfile {
   AUTEUR
 }
 
+enum FinanceEntryType {
+  INCOME
+  EXPENSE
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
@@ -31,8 +36,24 @@ model User {
   passwordHash String
   sessions     Session[]
   financeEntriesCreated FinanceEntry[]
+  auditLogs    AuditLog[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
 }
 
 model Session {
@@ -113,7 +134,7 @@ model ClubMember {
   email     String?
   phone     String?
   city      String?
-  role      String?
+  status    String?  @map("role")
   joinedAt  DateTime?
   clubId    String
   club      Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
@@ -140,6 +161,22 @@ model ClubContribution {
   @@index([clubId, monthKey])
   @@index([memberId, monthKey])
   @@unique([memberId, monthKey])
+}
+
+model FinanceEntry {
+  id          String           @id @default(cuid())
+  type        FinanceEntryType
+  amountCents Int
+  category    String
+  notes       String?
+  occurredAt  DateTime
+  createdById String
+  createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([type, occurredAt])
+  @@index([createdById])
 }
 
 model Book {

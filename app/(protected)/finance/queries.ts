@@ -22,19 +22,27 @@ export async function getFinanceEntries(): Promise<FinanceEntryListItem[]> {
 export async function getFinanceSummary(): Promise<{
   totalIncomeCents: number;
   totalExpenseCents: number;
+  totalContributionsCents: number;
   caisseCents: number;
 }> {
-  const grouped = await prisma.financeEntry.groupBy({
-    by: ["type"],
-    _sum: { amountCents: true },
-  });
+  const [grouped, contributions] = await Promise.all([
+    prisma.financeEntry.groupBy({
+      by: ["type"],
+      _sum: { amountCents: true },
+    }),
+    prisma.clubContribution.aggregate({
+      _sum: { amountCents: true },
+    }),
+  ]);
 
   const totalIncomeCents = grouped.find((g) => g.type === "INCOME")?._sum.amountCents ?? 0;
   const totalExpenseCents = grouped.find((g) => g.type === "EXPENSE")?._sum.amountCents ?? 0;
+  const totalContributionsCents = contributions._sum.amountCents ?? 0;
 
   return {
     totalIncomeCents,
     totalExpenseCents,
-    caisseCents: totalIncomeCents - totalExpenseCents,
+    totalContributionsCents,
+    caisseCents: totalIncomeCents + totalContributionsCents - totalExpenseCents,
   };
 }
