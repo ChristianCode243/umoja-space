@@ -10,7 +10,7 @@ export type ClubMemberListItem = {
   email: string | null;
   phone: string | null;
   city: string | null;
-  role: string | null;
+  status: string | null;
   joinedAt: string | null;
   clubId: string;
   clubName: string;
