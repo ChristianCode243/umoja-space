@@ -18,6 +18,7 @@ export default async function FinanceCashflowPage() {
       <div className="flex items-center gap-4">
         <h1 className="text-3xl font-semibold">Finance - Entrees / Sorties</h1>
         <Link href="/finance/cotisations" className="text-sm underline">Voir les cotisations</Link>
+        <Link href="/finance/livre-journal" className="text-sm underline">Voir le livre journal</Link>
       </div>
       <FinanceEntriesManager initialEntries={entries} initialSummary={summary} canCreate={canCreate} />
     </div>
