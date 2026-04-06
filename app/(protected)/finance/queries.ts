@@ -25,17 +25,32 @@ export async function getFinanceSummary(): Promise<{
   totalContributionsCents: number;
   caisseCents: number;
 }> {
-  const grouped = await prisma.journalEntry.groupBy({
+  type JournalGroupRow = {
+    sourceType: "FINANCE_INCOME" | "FINANCE_EXPENSE" | "CONTRIBUTION" | "ADJUSTMENT";
+    side: "DEBIT" | "CREDIT";
+    _sum: { amountCents: number | null };
+  };
+
+  const journalEntryClient = (prisma as unknown as {
+    journalEntry: {
+      groupBy: (args: {
+        by: Array<"sourceType" | "side">;
+        _sum: { amountCents: true };
+      }) => Promise<JournalGroupRow[]>;
+    };
+  }).journalEntry;
+
+  const grouped: JournalGroupRow[] = await journalEntryClient.groupBy({
     by: ["sourceType", "side"],
     _sum: { amountCents: true },
   });
 
   function netBySource(sourceType: "FINANCE_INCOME" | "FINANCE_EXPENSE" | "CONTRIBUTION"): number {
     const credit =
-      grouped.find((row) => row.sourceType === sourceType && row.side === "CREDIT")?._sum
+      grouped.find((row: JournalGroupRow) => row.sourceType === sourceType && row.side === "CREDIT")?._sum
         .amountCents ?? 0;
     const debit =
-      grouped.find((row) => row.sourceType === sourceType && row.side === "DEBIT")?._sum
+      grouped.find((row: JournalGroupRow) => row.sourceType === sourceType && row.side === "DEBIT")?._sum
         .amountCents ?? 0;
     return credit - debit;
   }
@@ -44,11 +59,11 @@ export async function getFinanceSummary(): Promise<{
   const totalExpenseCents = -netBySource("FINANCE_EXPENSE");
   const totalContributionsCents = netBySource("CONTRIBUTION");
   const credits = grouped
-    .filter((row) => row.side === "CREDIT")
-    .reduce((sum, row) => sum + (row._sum.amountCents ?? 0), 0);
+    .filter((row: JournalGroupRow) => row.side === "CREDIT")
+    .reduce((sum: number, row: JournalGroupRow) => sum + (row._sum.amountCents ?? 0), 0);
   const debits = grouped
-    .filter((row) => row.side === "DEBIT")
-    .reduce((sum, row) => sum + (row._sum.amountCents ?? 0), 0);
+    .filter((row: JournalGroupRow) => row.side === "DEBIT")
+    .reduce((sum: number, row: JournalGroupRow) => sum + (row._sum.amountCents ?? 0), 0);
 
   return {
     totalIncomeCents,

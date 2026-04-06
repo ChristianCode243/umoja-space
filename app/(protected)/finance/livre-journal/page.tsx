@@ -9,7 +9,28 @@ export default async function FinanceJournalPage() {
     return <p className="text-muted-foreground">Acces refuse.</p>;
   }
 
-  const rows = await prisma.journalEntry.findMany({
+  type JournalRow = {
+    id: string;
+    occurredAt: Date;
+    sourceType: string;
+    description: string | null;
+    side: "DEBIT" | "CREDIT";
+    amountCents: number;
+    createdBy: { name: string } | null;
+    createdAt: Date;
+  };
+
+  const journalEntryClient = (prisma as unknown as {
+    journalEntry: {
+      findMany: (args: {
+        orderBy: Array<{ occurredAt: "desc" } | { createdAt: "desc" }>;
+        include: { createdBy: { select: { name: true } } };
+        take: number;
+      }) => Promise<JournalRow[]>;
+    };
+  }).journalEntry;
+
+  const rows: JournalRow[] = await journalEntryClient.findMany({
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     include: { createdBy: { select: { name: true } } },
     take: 300,
@@ -38,7 +59,7 @@ export default async function FinanceJournalPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row: JournalRow) => (
               <tr key={row.id} className="border-b last:border-0">
                 <td className="px-3 py-2 whitespace-nowrap">{new Date(row.occurredAt).toLocaleDateString()}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{row.sourceType}</td>

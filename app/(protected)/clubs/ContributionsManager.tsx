@@ -52,7 +52,7 @@ export function ContributionsManager({
     const keys = new Set(contributions.map((row) => row.monthKey));
     return Array.from(keys).sort().reverse();
   }, [contributions]);
-    const uniqueClubs = useMemo(() => {
+  const uniqueClubs = useMemo(() => {
     const clubs = new Set(contributions.map((row) => row.clubName));
     return Array.from(clubs).sort();
   }, [contributions]);

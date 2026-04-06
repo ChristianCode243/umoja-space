@@ -50,7 +50,7 @@ export default async function AuditPage() {
             {logs.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                  Aucun evenement d'audit pour le moment.
+                  Aucun evenement d&apos;audit pour le moment.
                 </td>
               </tr>
             )}
