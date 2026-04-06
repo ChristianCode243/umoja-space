@@ -6,8 +6,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
+import { addJournalEntry } from "@/lib/ledger";
 import { getClubs } from "./queries";
-import type { ClubsActionResult } from "./types";
+import type { ClubContributionActionResult, ClubsActionResult } from "./types";
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -41,6 +43,10 @@ async function requireManagerUser() {
     return null;
   }
   return user;
+}
+
+function normalizeMonthKey(value: string): string {
+  return value.trim();
 }
 
 export async function createClub(input: {
@@ -101,6 +107,12 @@ export async function createClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_CREATE",
+      entityType: "Club",
+      details: { name },
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.createClub", error, "Impossible de creer le club.");
@@ -177,6 +189,13 @@ export async function updateClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_UPDATE",
+      entityType: "Club",
+      entityId: id,
+      details: { name },
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.updateClub", error, "Impossible de mettre a jour le club.");
@@ -222,8 +241,116 @@ export async function deleteClub(input: {
 
   try {
     revalidatePath("/clubs");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CLUB_DELETE",
+      entityType: "Club",
+      entityId: input.id,
+    });
     return { ok: true, clubs: await getClubs() };
   } catch (error) {
     return actionError<ClubsActionResult>("clubs.deleteClub", error, "Impossible de supprimer le club.");
+  }
+}
+
+export async function createClubContribution(input: {
+  memberId: string;
+  monthKey: string;
+  amount: string;
+  notes?: string;
+}): Promise<ClubContributionActionResult> {
+  const currentUser = await requireManagerUser();
+  if (!currentUser) {
+    return { ok: false, error: "Access denied." };
+  }
+
+  const memberId = normalizeText(input.memberId || "");
+  const monthKey = normalizeMonthKey(input.monthKey || "");
+  const notes = normalizeText(input.notes || "");
+  const amount = Number(input.amount || 0);
+
+  if (!memberId || !monthKey || !Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Membre, mois et montant valides sont requis." };
+  }
+
+  const member = await prisma.clubMember.findUnique({
+    where: { id: memberId },
+    select: { id: true, clubId: true },
+  });
+
+  if (!member) {
+    return { ok: false, error: "Membre introuvable." };
+  }
+
+  if (
+    currentUser.profile === "CHEF_CLUB" &&
+    currentUser.clubScopeId &&
+    currentUser.clubScopeId !== member.clubId
+  ) {
+    return { ok: false, error: "Vous ne pouvez ajouter des cotisations que pour votre club." };
+  }
+
+  try {
+    const existing = await prisma.clubContribution.findUnique({
+      where: {
+        memberId_monthKey: {
+          memberId: member.id,
+          monthKey,
+        },
+      },
+      select: { amountCents: true },
+    });
+
+    await prisma.clubContribution.upsert({
+      where: {
+        memberId_monthKey: {
+          memberId: member.id,
+          monthKey,
+        },
+      },
+      update: {
+        amountCents: Math.round(amount * 100),
+        notes: notes || null,
+        paidAt: new Date(),
+      },
+      create: {
+        clubId: member.clubId,
+        memberId: member.id,
+        monthKey,
+        amountCents: Math.round(amount * 100),
+        notes: notes || null,
+      },
+    });
+
+    const nextAmountCents = Math.round(amount * 100);
+    const delta = nextAmountCents - (existing?.amountCents ?? 0);
+    if (delta !== 0) {
+      await addJournalEntry({
+        side: delta > 0 ? "CREDIT" : "DEBIT",
+        sourceType: "CONTRIBUTION",
+        sourceId: `${member.id}:${monthKey}`,
+        amountCents: Math.abs(delta),
+        description: `Cotisation ${monthKey}`,
+        createdById: currentUser.id,
+      });
+    }
+
+    revalidatePath("/clubs");
+    revalidatePath("/finance/cotisations");
+    await auditLog({
+      actorId: currentUser.id,
+      action: "CONTRIBUTION_UPSERT",
+      entityType: "ClubContribution",
+      entityId: `${member.id}:${monthKey}`,
+      details: { amountCents: Math.round(amount * 100) },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    return actionError<ClubContributionActionResult>(
+      "clubs.createClubContribution",
+      error,
+      "Impossible d'enregistrer la cotisation."
+    );
   }
 }
