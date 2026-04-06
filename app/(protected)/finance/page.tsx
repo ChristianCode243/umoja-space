@@ -16,21 +16,26 @@ export default async function FinancePage() {
       <p className="text-muted-foreground">
         Espace financier: suivi de la caisse, des entrees/sorties et des cotisations.
       </p>
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Total entrees</p>
-          <p className="text-xl font-semibold">{(summary.totalIncomeCents / 100).toFixed(2)}</p>
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50/80 p-3">
+          <p className="text-xs text-emerald-700">Total entrees (incl. cotisations)</p>
+          <p className="truncate text-sm font-semibold text-emerald-900 md:text-xl" title={((summary.totalIncomeCents + summary.totalContributionsCents) / 100).toFixed(2)}>
+            {((summary.totalIncomeCents + summary.totalContributionsCents) / 100).toFixed(2)}
+          </p>
         </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Total sorties</p>
-          <p className="text-xl font-semibold">{(summary.totalExpenseCents / 100).toFixed(2)}</p>
+        <div className="rounded-lg border border-rose-300 bg-rose-50/80 p-3">
+          <p className="text-xs text-rose-700">Total sorties</p>
+          <p className="truncate text-sm font-semibold text-rose-900 md:text-xl" title={(summary.totalExpenseCents / 100).toFixed(2)}>{(summary.totalExpenseCents / 100).toFixed(2)}</p>
         </div>
-        <div className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">Caisse actuelle</p>
-          <p className="text-xl font-semibold">{(summary.caisseCents / 100).toFixed(2)}</p>
+        <div className="rounded-lg border border-sky-300 bg-sky-50/80 p-3">
+          <p className="text-xs text-sky-700">Caisse actuelle</p>
+          <p className="truncate text-sm font-semibold text-sky-900 md:text-xl" title={(summary.caisseCents / 100).toFixed(2)}>{(summary.caisseCents / 100).toFixed(2)}</p>
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <p className="text-xs text-muted-foreground">
+        Dont cotisations: {(summary.totalContributionsCents / 100).toFixed(2)}
+      </p>
+      <div className="grid gap-3 md:grid-cols-3">
         <Link href="/finance/entrees-sorties" className="rounded-lg border p-4 hover:bg-muted/30">
           <h2 className="font-semibold">Entrees / Sorties</h2>
           <p className="text-sm text-muted-foreground">
@@ -41,6 +46,12 @@ export default async function FinancePage() {
           <h2 className="font-semibold">Cotisations</h2>
           <p className="text-sm text-muted-foreground">
             Consulter les cotisations des clubs (lecture seule).
+          </p>
+        </Link>
+        <Link href="/finance/livre-journal" className="rounded-lg border p-4 hover:bg-muted/30">
+          <h2 className="font-semibold">Livre journal</h2>
+          <p className="text-sm text-muted-foreground">
+            Consulter tous les mouvements en debit / credit.
           </p>
         </Link>
       </div>

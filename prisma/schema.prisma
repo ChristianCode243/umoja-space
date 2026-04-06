@@ -26,6 +26,18 @@ enum FinanceEntryType {
   EXPENSE
 }
 
+enum JournalEntrySide {
+  DEBIT
+  CREDIT
+}
+
+enum JournalSourceType {
+  FINANCE_INCOME
+  FINANCE_EXPENSE
+  CONTRIBUTION
+  ADJUSTMENT
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
@@ -37,6 +49,7 @@ model User {
   sessions     Session[]
   financeEntriesCreated FinanceEntry[]
   auditLogs    AuditLog[]
+  journalEntriesCreated JournalEntry[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -177,6 +190,23 @@ model FinanceEntry {
 
   @@index([type, occurredAt])
   @@index([createdById])
+}
+
+model JournalEntry {
+  id          String            @id @default(cuid())
+  side        JournalEntrySide
+  sourceType  JournalSourceType
+  sourceId    String?
+  amountCents Int
+  description String?
+  occurredAt  DateTime          @default(now())
+  createdById String?
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+
+  @@index([occurredAt])
+  @@index([side, occurredAt])
+  @@index([sourceType, sourceId])
 }
 
 model Book {

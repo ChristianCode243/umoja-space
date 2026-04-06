@@ -25,24 +25,35 @@ export async function getFinanceSummary(): Promise<{
   totalContributionsCents: number;
   caisseCents: number;
 }> {
-  const [grouped, contributions] = await Promise.all([
-    prisma.financeEntry.groupBy({
-      by: ["type"],
-      _sum: { amountCents: true },
-    }),
-    prisma.clubContribution.aggregate({
-      _sum: { amountCents: true },
-    }),
-  ]);
+  const grouped = await prisma.journalEntry.groupBy({
+    by: ["sourceType", "side"],
+    _sum: { amountCents: true },
+  });
 
-  const totalIncomeCents = grouped.find((g) => g.type === "INCOME")?._sum.amountCents ?? 0;
-  const totalExpenseCents = grouped.find((g) => g.type === "EXPENSE")?._sum.amountCents ?? 0;
-  const totalContributionsCents = contributions._sum.amountCents ?? 0;
+  function netBySource(sourceType: "FINANCE_INCOME" | "FINANCE_EXPENSE" | "CONTRIBUTION"): number {
+    const credit =
+      grouped.find((row) => row.sourceType === sourceType && row.side === "CREDIT")?._sum
+        .amountCents ?? 0;
+    const debit =
+      grouped.find((row) => row.sourceType === sourceType && row.side === "DEBIT")?._sum
+        .amountCents ?? 0;
+    return credit - debit;
+  }
+
+  const totalIncomeCents = netBySource("FINANCE_INCOME");
+  const totalExpenseCents = -netBySource("FINANCE_EXPENSE");
+  const totalContributionsCents = netBySource("CONTRIBUTION");
+  const credits = grouped
+    .filter((row) => row.side === "CREDIT")
+    .reduce((sum, row) => sum + (row._sum.amountCents ?? 0), 0);
+  const debits = grouped
+    .filter((row) => row.side === "DEBIT")
+    .reduce((sum, row) => sum + (row._sum.amountCents ?? 0), 0);
 
   return {
     totalIncomeCents,
     totalExpenseCents,
     totalContributionsCents,
-    caisseCents: totalIncomeCents + totalContributionsCents - totalExpenseCents,
+    caisseCents: credits - debits,
   };
 }

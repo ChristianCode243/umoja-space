@@ -65,37 +65,6 @@ export default async function ClubsPage() {
         canCreate={canManageContributions}
         readOnlyLabel="(lecture seule)"
       />
-
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/40 text-left">
-              <th className="px-3 py-2">Mois</th>
-              <th className="px-3 py-2">Club</th>
-              <th className="px-3 py-2">Membre</th>
-              <th className="px-3 py-2">Montant</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contributions.map((row) => (
-              <tr key={row.id} className="border-b last:border-0">
-                <td className="px-3 py-2">{row.monthKey}</td>
-                <td className="px-3 py-2">{row.clubName}</td>
-                <td className="px-3 py-2">{row.memberName}</td>
-                <td className="px-3 py-2">{(row.amountCents / 100).toFixed(2)}</td>
-              </tr>
-            ))}
-            {contributions.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                  Aucune cotisation enregistree pour le moment.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
       <div className="text-xs text-muted-foreground">{members.length} membre(s) dans votre perimetre.</div>
     </section>
   );

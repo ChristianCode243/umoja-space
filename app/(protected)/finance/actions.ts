@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { actionError } from "@/lib/action-error";
 import { auditLog } from "@/lib/audit";
+import { addJournalEntry } from "@/lib/ledger";
 import type { FinanceEntryActionResult } from "./types";
 
 const INCOME_CATEGORIES = new Set([
@@ -79,6 +80,15 @@ export async function createFinanceEntry(input: {
 
     revalidatePath("/finance");
     revalidatePath("/finance/entrees-sorties");
+    await addJournalEntry({
+      side: type === "INCOME" ? "CREDIT" : "DEBIT",
+      sourceType: type === "INCOME" ? "FINANCE_INCOME" : "FINANCE_EXPENSE",
+      sourceId: created.id,
+      amountCents: created.amountCents,
+      description: `Finance ${type === "INCOME" ? "entree" : "sortie"} - ${category}`,
+      occurredAt,
+      createdById: user.id,
+    });
     await auditLog({
       actorId: user.id,
       action: "FINANCE_ENTRY_CREATE",
