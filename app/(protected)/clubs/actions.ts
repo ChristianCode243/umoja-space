@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { actionError } from "@/lib/action-error";
 import { auditLog } from "@/lib/audit";
-import { addJournalEntry } from "@/lib/ledger";
 import { getClubs } from "./queries";
 import type { ClubContributionActionResult, ClubsActionResult } from "./types";
 
@@ -291,16 +290,6 @@ export async function createClubContribution(input: {
   }
 
   try {
-    const existing = await prisma.clubContribution.findUnique({
-      where: {
-        memberId_monthKey: {
-          memberId: member.id,
-          monthKey,
-        },
-      },
-      select: { amountCents: true },
-    });
-
     await prisma.clubContribution.upsert({
       where: {
         memberId_monthKey: {
@@ -322,28 +311,8 @@ export async function createClubContribution(input: {
       },
     });
 
-    const nextAmountCents = Math.round(amount * 100);
-    const delta = nextAmountCents - (existing?.amountCents ?? 0);
-    if (delta !== 0) {
-      await addJournalEntry({
-        side: delta > 0 ? "CREDIT" : "DEBIT",
-        sourceType: "CONTRIBUTION",
-        sourceId: `${member.id}:${monthKey}`,
-        amountCents: Math.abs(delta),
-        description: `Cotisation ${monthKey}`,
-        createdById: currentUser.id,
-      });
-    }
-
     revalidatePath("/clubs");
     revalidatePath("/finance/cotisations");
-    await auditLog({
-      actorId: currentUser.id,
-      action: "CONTRIBUTION_UPSERT",
-      entityType: "ClubContribution",
-      entityId: `${member.id}:${monthKey}`,
-      details: { amountCents: Math.round(amount * 100) },
-    });
 
     return { ok: true };
   } catch (error) {
