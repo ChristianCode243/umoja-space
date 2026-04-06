@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, Menu, Building2, Coins, Truck, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Building2, Coins, Truck, Users, ShieldCheck } from "lucide-react";
 import type { User } from "@prisma/client";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const items: NavItem[] = [
   { key: "finance", label: "Finance", href: "/finance", icon: Coins },
   { key: "clubs", label: "Clubs", href: "/clubs", icon: Users },
   { key: "departement", label: "Departement", href: "/departement", icon: Building2 },
+  { key: "audit", label: "Audit", href: "/audit", icon: ShieldCheck },
 ];
 
 export function SiteNavbar({ currentUser }: SiteNavbarProps) {
