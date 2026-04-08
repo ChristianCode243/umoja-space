@@ -354,3 +354,44 @@ export async function createClubContribution(input: {
     );
   }
 }
+
+export async function saveClubContributionsMatrix(input: {
+  monthKey: string;
+  rows: Array<{
+    memberId: string;
+    amount: string | number;
+    notes?: string;
+  }>;
+}): Promise<ClubContributionActionResult> {
+  const monthKey = normalizeMonthKey(input.monthKey || "");
+  if (!monthKey) {
+    return { ok: false, error: "Le mois est requis." };
+  }
+
+  if (!Array.isArray(input.rows) || input.rows.length === 0) {
+    return { ok: false, error: "Aucune ligne a enregistrer." };
+  }
+
+  for (const row of input.rows) {
+    const memberId = normalizeText(row.memberId || "");
+    const numericAmount = typeof row.amount === "number" ? row.amount : Number(row.amount || 0);
+
+    // Ignore empty/zero lines from spreadsheet-like inputs.
+    if (!memberId || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      continue;
+    }
+
+    const result = await createClubContribution({
+      memberId,
+      monthKey,
+      amount: String(numericAmount),
+      notes: row.notes ?? "",
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+  }
+
+  return { ok: true };
+}
