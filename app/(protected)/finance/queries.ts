@@ -22,19 +22,53 @@ export async function getFinanceEntries(): Promise<FinanceEntryListItem[]> {
 export async function getFinanceSummary(): Promise<{
   totalIncomeCents: number;
   totalExpenseCents: number;
+  totalContributionsCents: number;
   caisseCents: number;
 }> {
-  const grouped = await prisma.financeEntry.groupBy({
-    by: ["type"],
+  type JournalGroupRow = {
+    sourceType: "FINANCE_INCOME" | "FINANCE_EXPENSE" | "CONTRIBUTION" | "ADJUSTMENT";
+    side: "DEBIT" | "CREDIT";
+    _sum: { amountCents: number | null };
+  };
+
+  const journalEntryClient = (prisma as unknown as {
+    journalEntry: {
+      groupBy: (args: {
+        by: Array<"sourceType" | "side">;
+        _sum: { amountCents: true };
+      }) => Promise<JournalGroupRow[]>;
+    };
+  }).journalEntry;
+
+  const grouped: JournalGroupRow[] = await journalEntryClient.groupBy({
+    by: ["sourceType", "side"],
     _sum: { amountCents: true },
   });
 
-  const totalIncomeCents = grouped.find((g) => g.type === "INCOME")?._sum.amountCents ?? 0;
-  const totalExpenseCents = grouped.find((g) => g.type === "EXPENSE")?._sum.amountCents ?? 0;
+  function netBySource(sourceType: "FINANCE_INCOME" | "FINANCE_EXPENSE" | "CONTRIBUTION"): number {
+    const credit =
+      grouped.find((row: JournalGroupRow) => row.sourceType === sourceType && row.side === "CREDIT")?._sum
+        .amountCents ?? 0;
+    const debit =
+      grouped.find((row: JournalGroupRow) => row.sourceType === sourceType && row.side === "DEBIT")?._sum
+        .amountCents ?? 0;
+    return credit - debit;
+  }
+
+  const totalIncomeCents = netBySource("FINANCE_INCOME");
+  const totalExpenseCents = -netBySource("FINANCE_EXPENSE");
+  const totalContributionsCents = netBySource("CONTRIBUTION");
+  const credits = grouped
+    .filter((row: JournalGroupRow) => row.side === "CREDIT")
+    .reduce((sum: number, row: JournalGroupRow) => sum + (row._sum.amountCents ?? 0), 0);
+  const debits = grouped
+    .filter((row: JournalGroupRow) => row.side === "DEBIT")
+    .reduce((sum: number, row: JournalGroupRow) => sum + (row._sum.amountCents ?? 0), 0);
 
   return {
     totalIncomeCents,
     totalExpenseCents,
-    caisseCents: totalIncomeCents - totalExpenseCents,
+    totalContributionsCents,
+    caisseCents: credits - debits,
   };
 }
