@@ -355,29 +355,125 @@ export async function createClubContribution(input: {
   }
 }
 
-export async function saveClubContributionsMatrix(input: {
+type ContributionMatrixRow = {
+  memberId: string;
   monthKey: string;
-  rows: Array<{
-    memberId: string;
-    amount: string | number;
-    notes?: string;
-  }>;
-}): Promise<ClubContributionActionResult> {
-  const monthKey = normalizeMonthKey(input.monthKey || "");
-  if (!monthKey) {
-    return { ok: false, error: "Le mois est requis." };
+  amount: string | number;
+  notes?: string;
+};
+
+type SaveMatrixInput =
+  | {
+      monthKey: string;
+      rows: Array<{
+        memberId: string;
+        amount: string | number;
+        notes?: string;
+      }>;
+    }
+  | {
+      year: number | string;
+      amount: string | number;
+      selectedByMember: Record<string, boolean | string[] | Record<string, boolean>>;
+      notes?: string;
+    };
+
+function toMonthKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function normalizeMatrixRows(input: SaveMatrixInput): ContributionMatrixRow[] {
+  if ("rows" in input) {
+    return input.rows.map((row) => ({
+      memberId: row.memberId,
+      monthKey: input.monthKey,
+      amount: row.amount,
+      notes: row.notes,
+    }));
   }
 
-  if (!Array.isArray(input.rows) || input.rows.length === 0) {
+  const year = Number(input.year);
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+    return [];
+  }
+
+  const rows: ContributionMatrixRow[] = [];
+  for (const [memberId, selection] of Object.entries(input.selectedByMember)) {
+    if (!memberId) {
+      continue;
+    }
+
+    if (typeof selection === "boolean") {
+      if (!selection) {
+        continue;
+      }
+      for (let month = 1; month <= 12; month += 1) {
+        rows.push({
+          memberId,
+          monthKey: toMonthKey(year, month),
+          amount: input.amount,
+          notes: input.notes,
+        });
+      }
+      continue;
+    }
+
+    if (Array.isArray(selection)) {
+      for (const selectedMonth of selection) {
+        const raw = String(selectedMonth || "").trim();
+        if (!raw) {
+          continue;
+        }
+
+        const monthKey = /^\d{4}-\d{2}$/.test(raw)
+          ? raw
+          : toMonthKey(year, Number(raw));
+
+        rows.push({
+          memberId,
+          monthKey,
+          amount: input.amount,
+          notes: input.notes,
+        });
+      }
+      continue;
+    }
+
+    for (const [rawMonth, isSelected] of Object.entries(selection)) {
+      if (!isSelected) {
+        continue;
+      }
+      const monthNumber = Number(rawMonth);
+      if (!Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+        continue;
+      }
+      rows.push({
+        memberId,
+        monthKey: toMonthKey(year, monthNumber),
+        amount: input.amount,
+        notes: input.notes,
+      });
+    }
+  }
+
+  return rows;
+}
+
+export async function saveClubContributionsMatrix(
+  input: SaveMatrixInput
+): Promise<ClubContributionActionResult> {
+  const matrixRows = normalizeMatrixRows(input);
+
+  if (matrixRows.length === 0) {
     return { ok: false, error: "Aucune ligne a enregistrer." };
   }
 
-  for (const row of input.rows) {
+  for (const row of matrixRows) {
     const memberId = normalizeText(row.memberId || "");
+    const monthKey = normalizeMonthKey(row.monthKey || "");
     const numericAmount = typeof row.amount === "number" ? row.amount : Number(row.amount || 0);
 
-    // Ignore empty/zero lines from spreadsheet-like inputs.
-    if (!memberId || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+    if (!memberId || !monthKey || !Number.isFinite(numericAmount) || numericAmount <= 0) {
       continue;
     }
 
