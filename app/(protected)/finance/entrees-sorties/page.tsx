@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { canAccessSection } from "@/lib/access";
+import { ParentBackButton } from "@/components/parent-back-button";
 import { FinanceEntriesManager } from "../FinanceEntriesManager";
 import { getFinanceEntries, getFinanceSummary } from "../queries";
 
@@ -15,6 +16,7 @@ export default async function FinanceCashflowPage() {
 
   return (
     <div className="space-y-4">
+      <ParentBackButton href="/finance" label="Retour à Finance" />
       <div className="flex items-center gap-4">
         <h1 className="text-3xl font-semibold">Finance - Entrees / Sorties</h1>
         <Link href="/finance/cotisations" className="text-sm underline">Voir les cotisations</Link>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { canAccessSection } from "@/lib/access";
+import { ParentBackButton } from "@/components/parent-back-button";
 import { prisma } from "@/lib/prisma";
 
 export default async function FinanceJournalPage() {
@@ -38,6 +39,7 @@ export default async function FinanceJournalPage() {
 
   return (
     <section className="space-y-4">
+      <ParentBackButton href="/finance" label="Retour à Finance" />
       <div className="flex items-center gap-4">
         <h1 className="text-3xl font-semibold">Finance - Livre journal</h1>
         <Link href="/finance/entrees-sorties" className="text-sm underline">Voir entrees/sorties</Link>
