@@ -1,17 +1,31 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { Search } from "lucide-react";
 import { createClubContribution } from "./actions";
 import type { ClubContributionItem, ClubMemberOption } from "./queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 
 type ContributionsManagerProps = {
   initialContributions: ClubContributionItem[];
   members: ClubMemberOption[];
   canCreate: boolean;
   readOnlyLabel?: string;
+  enableClubFilter?: boolean;
 };
 
 export function ContributionsManager({
@@ -19,14 +33,60 @@ export function ContributionsManager({
   members,
   canCreate,
   readOnlyLabel,
+  enableClubFilter = false,
 }: ContributionsManagerProps) {
   const [contributions, setContributions] = useState(initialContributions);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [monthFilter, setMonthFilter] = useState("ALL");
+  const [clubFilter, setClubFilter] = useState("ALL");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const memberById = useMemo(() => {
     return new Map(members.map((member) => [member.id, member]));
   }, [members]);
+
+  const uniqueMonths = useMemo(() => {
+    const keys = new Set(contributions.map((row) => row.monthKey));
+    return Array.from(keys).sort().reverse();
+  }, [contributions]);
+  const uniqueClubs = useMemo(() => {
+    const clubs = new Set(contributions.map((row) => row.clubName));
+    return Array.from(clubs).sort();
+  }, [contributions]);
+
+  const filteredContributions = useMemo(() => {
+    const normalized = searchTerm.trim().toLowerCase();
+    return contributions.filter((row) => {
+      if (monthFilter !== "ALL" && row.monthKey !== monthFilter) {
+        return false;
+      }
+      if (clubFilter !== "ALL" && row.clubName !== clubFilter) {
+        return false;
+      }
+      if (!normalized) {
+        return true;
+      }
+      return [row.clubName, row.memberName, row.monthKey, row.notes]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized);
+    });
+  }, [clubFilter, contributions, monthFilter, searchTerm]);
+
+  const totals = useMemo(() => {
+    const totalCents = contributions.reduce((sum, row) => sum + row.amountCents, 0);
+    const filteredCents = filteredContributions.reduce((sum, row) => sum + row.amountCents, 0);
+    return {
+      totalCents,
+      filteredCents,
+      count: contributions.length,
+      filteredCount: filteredContributions.length,
+    };
+  }, [contributions, filteredContributions]);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -63,6 +123,8 @@ export function ContributionsManager({
         };
 
         setContributions((prev) => [next, ...prev].slice(0, 120));
+        formRef.current?.reset();
+        setIsModalOpen(false);
       });
     });
   }
@@ -77,48 +139,127 @@ export function ContributionsManager({
         </p>
       </div>
 
-      {canCreate && (
-        <form action={handleSubmit} className="grid gap-3 rounded-md border p-3 md:grid-cols-4">
-          <div className="space-y-1 md:col-span-2">
-            <Label htmlFor="memberId">Membre</Label>
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50/80 p-2 md:p-3">
+          <p className="text-[10px] text-emerald-700 md:text-xs">Total cotisations</p>
+          <p className="text-sm font-semibold text-emerald-900 md:text-xl">{(totals.totalCents / 100).toFixed(2)}</p>
+        </div>
+        <div className="rounded-lg border border-amber-300 bg-amber-50/80 p-2 md:p-3">
+          <p className="text-[10px] text-amber-700 md:text-xs">Resultat filtre</p>
+          <p className="text-sm font-semibold text-amber-900 md:text-xl">{(totals.filteredCents / 100).toFixed(2)}</p>
+        </div>
+        <div className="rounded-lg border border-sky-300 bg-sky-50/80 p-2 md:p-3">
+          <p className="text-[10px] text-sky-700 md:text-xs">Lignes</p>
+          <p className="text-sm font-semibold text-sky-900 md:text-xl">{totals.filteredCount} / {totals.count}</p>
+        </div>
+      </div>
+
+      <div className={`grid gap-3 ${enableClubFilter ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+        <div className="md:col-span-2">
+          <Label htmlFor="contribution-search">Recherche</Label>
+          <InputGroup className="mt-1 h-10 w-full bg-muted/30 shadow-sm">
+            <InputGroupAddon className="text-muted-foreground">
+              <Search className="size-4" aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="contribution-search"
+              placeholder="Membre, club, mois, notes..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </InputGroup>
+        </div>
+        <div>
+          <Label htmlFor="month-filter">Filtrer par mois</Label>
+          <select
+            id="month-filter"
+            value={monthFilter}
+            onChange={(event) => setMonthFilter(event.target.value)}
+            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            <option value="ALL">Tous les mois</option>
+            {uniqueMonths.map((month) => (
+              <option key={month} value={month}>
+                {month}
+              </option>
+            ))}
+          </select>
+        </div>
+        {enableClubFilter && (
+          <div>
+            <Label htmlFor="club-filter">Filtrer par club</Label>
             <select
-              id="memberId"
-              name="memberId"
-              className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-              required
+              id="club-filter"
+              value={clubFilter}
+              onChange={(event) => setClubFilter(event.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
             >
-              <option value="">Selectionnez un membre</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.clubName})
+              <option value="ALL">Tous les clubs</option>
+              {uniqueClubs.map((club) => (
+                <option key={club} value={club}>
+                  {club}
                 </option>
               ))}
             </select>
           </div>
+        )}
+      </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="monthKey">Mois</Label>
-            <Input id="monthKey" name="monthKey" type="month" required />
-          </div>
+      {canCreate && (
+        <>
+          <Button type="button" onClick={() => setIsModalOpen(true)} disabled={members.length === 0}>
+            Ajouter une cotisation
+          </Button>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Nouvelle cotisation</DialogTitle>
+                <DialogDescription>
+                  Saisissez une cotisation mensuelle d&apos;un membre.
+                </DialogDescription>
+              </DialogHeader>
+              <form ref={formRef} action={handleSubmit} className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="memberId">Membre</Label>
+                  <select
+                    id="memberId"
+                    name="memberId"
+                    className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    required
+                  >
+                    <option value="">Selectionnez un membre</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name} ({member.clubName})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="amount">Montant</Label>
-            <Input id="amount" name="amount" type="number" min="0.01" step="0.01" required />
-          </div>
+                <div className="space-y-1">
+                  <Label htmlFor="monthKey">Mois</Label>
+                  <Input id="monthKey" name="monthKey" type="month" required />
+                </div>
 
-          <div className="space-y-1 md:col-span-3">
-            <Label htmlFor="notes">Notes</Label>
-            <Input id="notes" name="notes" placeholder="Optionnel" />
-          </div>
+                <div className="space-y-1">
+                  <Label htmlFor="amount">Montant</Label>
+                  <Input id="amount" name="amount" type="number" min="0.01" step="0.01" required />
+                </div>
 
-          <div className="md:col-span-1 md:flex md:items-end">
-            <Button type="submit" disabled={isPending || members.length === 0} className="w-full">
-              Ajouter
-            </Button>
-          </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Input id="notes" name="notes" placeholder="Optionnel" />
+                </div>
 
-          {error && <p className="text-sm text-destructive md:col-span-4">{error}</p>}
-        </form>
+                <div className="md:col-span-2">
+                  <Button type="submit" disabled={isPending}>Enregistrer la cotisation</Button>
+                </div>
+
+                {error && <p className="text-sm text-destructive md:col-span-2">{error}</p>}
+              </form>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       <div className="overflow-x-auto">
@@ -133,7 +274,7 @@ export function ContributionsManager({
             </tr>
           </thead>
           <tbody>
-            {contributions.map((row) => (
+            {filteredContributions.map((row) => (
               <tr key={row.id} className="border-b last:border-0">
                 <td className="py-2 pr-3">{row.monthKey}</td>
                 <td className="py-2 pr-3">{row.clubName}</td>
@@ -142,7 +283,7 @@ export function ContributionsManager({
                 <td className="py-2">{new Date(row.paidAt).toLocaleDateString()}</td>
               </tr>
             ))}
-            {contributions.length === 0 && (
+            {filteredContributions.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-5 text-center text-muted-foreground">
                   Aucune cotisation enregistree.

@@ -4,7 +4,27 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { actionError } from "@/lib/action-error";
+import { auditLog } from "@/lib/audit";
+import { addJournalEntry } from "@/lib/ledger";
 import type { FinanceEntryActionResult } from "./types";
+
+const INCOME_CATEGORIES = new Set([
+  "edition_livre",
+  "vente_livre",
+  "frais_formation",
+  "subvention",
+  "prestation_annexe",
+  "partenariat_sponsoring",
+  "autre",
+]);
+
+const EXPENSE_CATEGORIES = new Set([
+  "achat_materiel",
+  "production_editoriale",
+  "distribution_commercialisation",
+  "charge_administrative_fiscale",
+  "autre",
+]);
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -37,7 +57,11 @@ export async function createFinanceEntry(input: {
   const notes = normalizeText(input.notes || "");
   const occurredAt = parseDate(input.occurredAt || "");
 
-  if (!["INCOME", "EXPENSE"].includes(type) || !Number.isFinite(amount) || amount <= 0 || !category || !occurredAt) {
+  const validCategory =
+    (type === "INCOME" && INCOME_CATEGORIES.has(category)) ||
+    (type === "EXPENSE" && EXPENSE_CATEGORIES.has(category));
+
+  if (!["INCOME", "EXPENSE"].includes(type) || !Number.isFinite(amount) || amount <= 0 || !category || !occurredAt || !validCategory) {
     return { ok: false, error: "Type, montant, categorie et date sont requis." };
   }
 
@@ -56,6 +80,22 @@ export async function createFinanceEntry(input: {
 
     revalidatePath("/finance");
     revalidatePath("/finance/entrees-sorties");
+    await addJournalEntry({
+      side: type === "INCOME" ? "CREDIT" : "DEBIT",
+      sourceType: type === "INCOME" ? "FINANCE_INCOME" : "FINANCE_EXPENSE",
+      sourceId: created.id,
+      amountCents: created.amountCents,
+      description: `Finance ${type === "INCOME" ? "entree" : "sortie"} - ${category}`,
+      occurredAt,
+      createdById: user.id,
+    });
+    await auditLog({
+      actorId: user.id,
+      action: "FINANCE_ENTRY_CREATE",
+      entityType: "FinanceEntry",
+      entityId: created.id,
+      details: { type, amountCents: created.amountCents, category },
+    });
 
     return {
       ok: true,
