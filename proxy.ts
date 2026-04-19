@@ -1,10 +1,10 @@
-// Middleware to enforce authentication on all app routes except /login and static assets.
+// Proxy to enforce authentication on app routes except /login and static assets.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAME = "umja_session";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow the login page and static assets.

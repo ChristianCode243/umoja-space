@@ -16,7 +16,7 @@ export async function getClubMembers(clubId?: string): Promise<ClubMemberListIte
     email: member.email ?? null,
     phone: member.phone ?? null,
     city: member.city ?? null,
-    role: member.role ?? null,
+    status: member.status ?? null,
     joinedAt: member.joinedAt ? member.joinedAt.toISOString() : null,
     clubId: member.clubId,
     clubName: member.club.name,

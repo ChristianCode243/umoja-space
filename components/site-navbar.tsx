@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, Menu, Building2, Coins, Truck, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, Building2, Coins, Truck, Users, ShieldCheck, UserCircle2 } from "lucide-react";
 import type { User } from "@prisma/client";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const items: NavItem[] = [
   { key: "finance", label: "Finance", href: "/finance", icon: Coins },
   { key: "clubs", label: "Clubs", href: "/clubs", icon: Users },
   { key: "departement", label: "Departement", href: "/departement", icon: Building2 },
+  { key: "audit", label: "Audit", href: "/audit", icon: ShieldCheck },
 ];
 
 export function SiteNavbar({ currentUser }: SiteNavbarProps) {
@@ -52,6 +53,13 @@ export function SiteNavbar({ currentUser }: SiteNavbarProps) {
               </Link>
             ))}
           </nav>
+          <Link
+            href="/profil"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <UserCircle2 className="size-4" aria-hidden={true} />
+            <span>{currentUser.name}</span>
+          </Link>
           <span className="text-xs text-muted-foreground">{currentUser.profile}</span>
           <form action={logout}>
             <Button type="submit" variant="destructive" size="icon" aria-label="Se deconnecter">
@@ -74,6 +82,17 @@ export function SiteNavbar({ currentUser }: SiteNavbarProps) {
               </DialogHeader>
               <nav aria-label="Navigation mobile">
                 <ul className="mt-2 flex flex-col gap-2">
+                  <li>
+                    <DialogClose asChild>
+                      <Link
+                        href="/profil"
+                        className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <UserCircle2 className="size-4" aria-hidden={true} />
+                        <span>Profil</span>
+                      </Link>
+                    </DialogClose>
+                  </li>
                   {navItems.map((item) => (
                     <li key={item.href}>
                       <DialogClose asChild>
