@@ -84,6 +84,12 @@ export async function requireUser(): Promise<User> {
   if (!user) {
     redirect("/login");
   }
+  await auditLog({
+    actorId: user.id,
+    action: "AUTHENTICATED_ACCESS",
+    entityType: "User",
+    entityId: user.id,
+  });
   return user;
 }
 
