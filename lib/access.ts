@@ -1,6 +1,6 @@
 import type { User, UserProfile } from "@prisma/client";
 
-export type AppSection = "dashboard" | "logistique" | "finance" | "clubs" | "departement";
+export type AppSection = "dashboard" | "logistique" | "finance" | "clubs" | "departement" | "audit";
 
 const fullAccessProfiles: UserProfile[] = ["ADMIN", "INFORMATICIEN"];
 
@@ -19,6 +19,7 @@ const sectionProfiles: Record<AppSection, UserProfile[]> = {
   finance: ["ADMIN", "FINANCIER", "INFORMATICIEN"],
   clubs: ["ADMIN", "CHEF_CLUB", "AMBASSADEUR", "INFORMATICIEN"],
   departement: ["ADMIN", "INFORMATICIEN"],
+  audit: ["ADMIN"],
 };
 
 export function hasFullAccess(user: Pick<User, "profile">): boolean {
@@ -43,6 +44,7 @@ export function getVisibleSections(user: Pick<User, "profile">): AppSection[] {
     "finance",
     "clubs",
     "departement",
+    "audit",
   ];
 
   return sections.filter((section) => canAccessSection(user, section));

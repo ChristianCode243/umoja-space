@@ -31,6 +31,7 @@ import {
 type ClubMembersManagerProps = {
   initialMembers: ClubMemberListItem[];
   clubs: ClubOption[];
+  showClubCityFilters?: boolean;
 };
 
 type ClubFilter = "ALL" | string;
@@ -45,6 +46,7 @@ function formatDateInput(value: string | null): string {
 export function ClubMembersManager({
   initialMembers,
   clubs,
+  showClubCityFilters = true,
 }: ClubMembersManagerProps) {
   const [members, setMembers] = useState<ClubMemberListItem[]>(initialMembers);
   const [editingMember, setEditingMember] =
@@ -59,6 +61,7 @@ export function ClubMembersManager({
 
   const formKey = editingMember?.id ?? "new";
   const hasClubs = clubs.length > 0;
+  const lockedClubId = clubs.length === 1 ? clubs[0].id : "";
 
   // Extract unique cities for filters
   const uniqueCities = useMemo(() => {
@@ -71,11 +74,11 @@ export function ClubMembersManager({
     const normalized = searchTerm.trim().toLowerCase();
     let result = members;
 
-    if (clubFilter !== "ALL") {
+    if (showClubCityFilters && clubFilter !== "ALL") {
       result = result.filter((member) => member.clubId === clubFilter);
     }
 
-    if (cityFilter !== "ALL") {
+    if (showClubCityFilters && cityFilter !== "ALL") {
       result = result.filter((member) => member.city === cityFilter);
     }
 
@@ -89,7 +92,7 @@ export function ClubMembersManager({
         member.email,
         member.phone,
         member.city,
-        member.role,
+        member.status,
         member.clubName,
       ]
         .filter(Boolean)
@@ -97,7 +100,7 @@ export function ClubMembersManager({
         .toLowerCase()
         .includes(normalized)
     );
-  }, [members, searchTerm, clubFilter, cityFilter]);
+  }, [members, searchTerm, clubFilter, cityFilter, showClubCityFilters]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,9 +113,9 @@ export function ClubMembersManager({
       email: String(formData.get("email") || ""),
       phone: String(formData.get("phone") || ""),
       city: String(formData.get("city") || ""),
-      role: String(formData.get("role") || ""),
+      status: String(formData.get("status") || ""),
       joinedAt: String(formData.get("joinedAt") || ""),
-      clubId: String(formData.get("clubId") || ""),
+      clubId: String(formData.get("clubId") || lockedClubId),
     };
 
     startTransition(() => {
@@ -244,33 +247,40 @@ export function ClubMembersManager({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clubId">Club</Label>
-                <select
-                  id="clubId"
-                  name="clubId"
-                  defaultValue={editingMember?.clubId ?? ""}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  required
-                  disabled={!hasClubs}
-                >
-                  <option value="" disabled>
-                    Selectionnez un club
-                  </option>
-                  {clubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
+                <Label>Club</Label>
+                {lockedClubId ? (
+                  <>
+                    <Input value={clubs[0].name} disabled />
+                    <input type="hidden" name="clubId" value={editingMember?.clubId ?? lockedClubId} />
+                  </>
+                ) : (
+                  <select
+                    id="clubId"
+                    name="clubId"
+                    defaultValue={editingMember?.clubId ?? ""}
+                    className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    required
+                    disabled={!hasClubs}
+                  >
+                    <option value="" disabled>
+                      Selectionnez un club
                     </option>
-                  ))}
-                </select>
+                    {clubs.map((club) => (
+                      <option key={club.id} value={club.id}>
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="status">Statut</Label>
                 <Input
-                  id="role"
-                  name="role"
-                  defaultValue={editingMember?.role ?? ""}
-                  placeholder="Ex: President"
+                  id="status"
+                  name="status"
+                  defaultValue={editingMember?.status ?? ""}
+                  placeholder="Ex: Actif"
                 />
               </div>
 
@@ -361,52 +371,56 @@ export function ClubMembersManager({
                 </InputGroup>
               </div>
 
-              <div className="w-full md:w-48">
-                <Label htmlFor="club-filter">Filtrer par club</Label>
-                <select
-                  id="club-filter"
-                  name="club-filter"
-                  value={clubFilter}
-                  onChange={(event) => setClubFilter(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  <option value="ALL">Tous les clubs</option>
-                  {clubs.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {showClubCityFilters && (
+                <>
+                  <div className="w-full md:w-48">
+                    <Label htmlFor="club-filter">Filtrer par club</Label>
+                    <select
+                      id="club-filter"
+                      name="club-filter"
+                      value={clubFilter}
+                      onChange={(event) => setClubFilter(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="ALL">Tous les clubs</option>
+                      {clubs.map((club) => (
+                        <option key={club.id} value={club.id}>
+                          {club.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-48">
-                <Label htmlFor="city-filter">Filtrer par ville</Label>
-                <select
-                  id="city-filter"
-                  name="city-filter"
-                  value={cityFilter}
-                  onChange={(event) => setCityFilter(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  <option value="ALL">Toutes les villes</option>
-                  {uniqueCities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="w-full md:w-48">
+                    <Label htmlFor="city-filter">Filtrer par ville</Label>
+                    <select
+                      id="city-filter"
+                      name="city-filter"
+                      value={cityFilter}
+                      onChange={(event) => setCityFilter(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="ALL">Toutes les villes</option>
+                      {uniqueCities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full md:w-auto"
-                  onClick={handleResetFilters}
-                >
-                  Reinitialiser
-                </Button>
-              </div>
+                  <div className="w-full md:w-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full md:w-auto"
+                      onClick={handleResetFilters}
+                    >
+                      Reinitialiser
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -421,7 +435,7 @@ export function ClubMembersManager({
                   <th className="py-2 pr-4">Nom</th>
                   <th className="py-2 pr-4">Club</th>
                   <th className="py-2 pr-4">Ville</th>
-                  <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Statut</th>
                   <th className="py-2 pr-4">Email</th>
                   <th className="py-2 pr-4">Telephone</th>
                   <th className="py-2 pr-4">Adhesion</th>
@@ -434,7 +448,7 @@ export function ClubMembersManager({
                     <td className="py-2 pr-4 font-medium">{member.name}</td>
                     <td className="py-2 pr-4">{member.clubName}</td>
                     <td className="py-2 pr-4">{member.city ?? "-"}</td>
-                    <td className="py-2 pr-4">{member.role ?? "-"}</td>
+                    <td className="py-2 pr-4">{member.status ?? "-"}</td>
                     <td className="py-2 pr-4">{member.email ?? "-"}</td>
                     <td className="py-2 pr-4">{member.phone ?? "-"}</td>
                     <td className="py-2 pr-4">
